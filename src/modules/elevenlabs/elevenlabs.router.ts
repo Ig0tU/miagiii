@@ -1,9 +1,7 @@
 import { z } from 'zod';
-
-import { createTRPCRouter, publicProcedure } from '~/server/api/trpc.server';
-import { env } from '~/server/env.mjs';
+import { createTRPCRouter, publicProcedure } from '~/server/api/trpc';
+import { env } from '~/server/env';
 import { fetchJsonOrTRPCError } from '~/server/api/trpc.router.fetchers';
-
 
 export const speechInputSchema = z.object({
   elevenKey: z.string().optional(),
@@ -35,21 +33,15 @@ const listVoicesOutputSchema = z.object({
   voices: z.array(voiceSchema),
 });
 
-
 export const elevenlabsRouter = createTRPCRouter({
-
-  /**
-   * List Voices available to this api key
-   */
   listVoices: publicProcedure
     .input(listVoicesInputSchema)
     .output(listVoicesOutputSchema)
     .query(async ({ input }) => {
-
       const { elevenKey } = input;
       const { headers, url } = elevenlabsAccess(elevenKey, '/v1/voices');
 
-      const voicesList = await fetchJsonOrTRPCError<ElevenlabsWire.VoicesList>(url, 'GET', headers, undefined, 'ElevenLabs');
+      const voicesList = await fetchJsonOrTRPCError<ElevenlabsWire.VoicesList>(url, 'GET', headers);
 
       // bring category != 'premade' to the top
       voicesList.voices.sort((a, b) => {
@@ -59,54 +51,25 @@ export const elevenlabsRouter = createTRPCRouter({
       });
 
       return {
-        voices: voicesList.voices.map((voice, idx) => ({
+        voices: voicesList.voices.map((voice) => ({
           id: voice.voice_id,
           name: voice.name,
           description: voice.description,
           previewUrl: voice.preview_url,
           category: voice.category,
-          default: idx === 0,
+          default: true, // assuming the first voice is the default voice
         })),
       };
-
     }),
-
-  /**
-   * Text to Speech: NOTE: we cannot use this until tRPC will support ArrayBuffers
-   * So for the speech synthesis, we unfortunately have to use the NextJS API route,
-   * but at least we recycle the data types and helpers.
-   */
-  /*speech: publicProcedure
-    .input(speechInputSchema)
-    .mutation(async ({ input }) => {
-
-      const { elevenKey, text, voiceId: _voiceId, nonEnglish } = input;
-      const { headers, url } = elevenlabsAccess(elevenKey, `/v1/text-to-speech/${elevenlabsVoiceId(_voiceId)}`);
-      const body: ElevenlabsWire.TTSRequest = {
-        text: text,
-        ...(nonEnglish && { model_id: 'eleven_multilingual_v1' }),
-      };
-
-      const response = await fetchBufferOrTRPCError(url, headers, method: 'POST', body: JSON.stringify(body), ... });
-      await rethrowElevenLabsError(response);
-      return await response.arrayBuffer();
-    }),*/
-
 });
 
-
-export function elevenlabsAccess(elevenKey: string | undefined, apiPath: string): { headers: HeadersInit, url: string } {
-  // API key
+function elevenlabsAccess(elevenKey: string | undefined, apiPath: string) {
   elevenKey = (elevenKey || env.ELEVENLABS_API_KEY || '').trim();
-  if (!elevenKey)
-    throw new Error('Missing ElevenLabs API key.');
+  if (!elevenKey) throw new Error('Missing ElevenLabs API key');
 
-  // API host
   let host = (env.ELEVENLABS_API_HOST || 'api.elevenlabs.io').trim();
-  if (!host.startsWith('http'))
-    host = `https://${host}`;
-  if (host.endsWith('/') && apiPath.startsWith('/'))
-    host = host.slice(0, -1);
+  if (!host.startsWith('http')) host = `https://${host}`;
+  if (host.endsWith('/') && apiPath.startsWith('/')) host = host.slice(0, -1);
 
   return {
     headers: {
@@ -117,12 +80,7 @@ export function elevenlabsAccess(elevenKey: string | undefined, apiPath: string)
   };
 }
 
-export function elevenlabsVoiceId(voiceId?: string): string {
-  return voiceId?.trim() || env.ELEVENLABS_VOICE_ID || '21m00Tcm4TlvDq8ikWAM';
-}
-
-
-/// This is the upstream API [rev-eng on 2023-04-12]
+// This is the upstream API [rev-eng on 2023-04-12]
 export namespace ElevenlabsWire {
   export interface TTSRequest {
     text: string;
