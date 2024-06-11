@@ -1,15 +1,11 @@
 import * as React from 'react';
-
-import type { SxProps } from '@mui/joy/styles/types';
-import { Box, Button, Tooltip, Typography } from '@mui/joy';
+import { SxProps } from '@mui/joy/styles/types';
+import { Box, Button, Tooltip, Typography, iframe } from '@mui/joy';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import WebIcon from '@mui/icons-material/Web';
-
-import { copyToClipboard } from '~/common/util/clipboardUtils';
-
-import type { HtmlBlock } from './blocks';
-import { OverlayButton, overlayButtonsSx } from './code/RenderCode';
-
+import copyToClipboard from '~/common/util/clipboardUtils';
+import { HtmlBlock } from './blocks';
+import { overlayButtonsSx } from './code/RenderCode';
 
 // this is used by the blocks parser (for full text detection) and by the Code component (for inline rendering)
 export function heuristicIsHtml(text: string): boolean {
@@ -17,8 +13,7 @@ export function heuristicIsHtml(text: string): boolean {
   return text.startsWith('<!DOCTYPE html') || text.startsWith('<head>\n');
 }
 
-
-export const IFrameComponent = (props: { htmlString: string }) => {
+const IFrameComponent = React.memo((props: { htmlString: string }) => {
   const iframeRef = React.useRef<HTMLIFrameElement>(null);
 
   React.useEffect(() => {
@@ -45,17 +40,19 @@ export const IFrameComponent = (props: { htmlString: string }) => {
       title='HTML content'
     />
   );
-};
-
+});
 
 export function RenderHtml(props: { htmlBlock: HtmlBlock, sx?: SxProps }) {
   const [showHTML, setShowHTML] = React.useState(false);
 
   // remove the font* properties from sx
-  const sx: any = props.sx || {};
-  for (const key in sx)
-    if (key.startsWith('font'))
-      delete sx[key];
+  const sxWithFontPropertiesRemoved: any = React.useMemo(() => {
+    const sx: any = props.sx || {};
+    for (const key in sx)
+      if (key.startsWith('font'))
+        delete sx[key];
+    return sx;
+  }, [props.sx]);
 
   const handleCopyToClipboard = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -71,10 +68,9 @@ export function RenderHtml(props: { htmlBlock: HtmlBlock, sx?: SxProps }) {
           display: 'block',
           overflowX: 'auto',
           '&:hover > .overlay-buttons': { opacity: 1 },
-          ...sx,
+          ...sxWithFontPropertiesRemoved,
         }}
       >
-
         {/* Highlighted Code / SVG render */}
         {showHTML
           ? <IFrameComponent htmlString={props.htmlBlock.html} />
