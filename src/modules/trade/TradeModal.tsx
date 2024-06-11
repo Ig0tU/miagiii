@@ -6,26 +6,55 @@ import { GoodModal } from '~/common/components/GoodModal';
 import { ExportChats, ExportConfig } from './ExportChats';
 import { ImportChats, ImportConfig } from './ImportChats';
 
-export type TradeConfig = ImportConfig | ExportConfig;
+type ImportConfigProps = {
+  onConversationActivate: (conversationId: DConversationId) => void;
+  onClose: () => void;
+};
 
-export function TradeModal(props: { config: TradeConfig, onConversationActivate: (conversationId: DConversationId) => void, onClose: () => void }) {
-  return (
-    <GoodModal
-      open onClose={props.onClose}
-      dividers
-      title={<>
-        <b>{props.config.dir === 'import' ? 'Import ' : props.config.dir === 'export' ? 'Export ' : ''}</b> {(props.config.dir === 'export' && !props.config.exportAll) ? 'conversation' : 'conversations'}
-      </>}
-    >
+type ExportConfigProps = {
+  config: ExportConfig;
+  onClose: () => void;
+};
 
-      {props.config.dir === 'import' && (
-        <ImportChats onConversationActivate={props.onConversationActivate} onClose={props.onClose} />
-      )}
+type TradeConfig = ImportConfig | ExportConfig;
 
-      {props.config.dir === 'export' && (
-        <ExportChats config={props.config} onClose={props.onClose} />
-      )}
+type TradeModalType = {
+  config: TradeConfig;
+  onConversationActivate: (conversationId: DConversationId) => void;
+  onClose: () => void;
+};
 
-    </GoodModal>
-  );
-}
+const getTitle = (config: TradeConfig) => {
+  if (config.dir === 'import') {
+    return 'Import conversation';
+  }
+  if (config.dir === 'export') {
+    return config.exportAll ? 'Export conversations' : 'Export conversation';
+  }
+  return '';
+};
+
+const getModalContent = (config: TradeConfig, onConversationActivate: (conversationId: DConversationId) => void, onClose: () => void) => {
+  if (config.dir === 'import') {
+    return <ImportChats onConversationActivate={onConversationActivate} onClose={onClose} />;
+  }
+  if (config.dir === 'export') {
+    return <ExportChats config={config} onClose={onClose} />;
+  }
+  return null;
+};
+
+const getModalProps = (config: TradeConfig, onClose: () => void) => ({
+  open: true,
+  onClose,
+  dividers: true,
+  title: (
+    <>
+      <b>{getTitle(config)}</b>
+    </>
+  ),
+});
+
+export const TradeModal: React.FC<TradeModalType> = (props) => {
+  return <GoodModal {...getModalProps(props.config, props.onClose)}>{getModalContent(props.config, props.onConversationActivate, props.onClose)}</GoodModal>;
+};
