@@ -1,17 +1,30 @@
+/* Base variables for AGI components */
 :root {
-    --AGI-Nav-width: 52px;
-    --AGI-Drawer-width: 320px;
-    --AGI-Desktop-Drawer-width: clamp(300px, 20.17vw, 400px);
-    --AGI-Optima-Radius: 0.75rem; /* var(--joy-radius-lg) */
+  --AGI-Nav-width: 52px;
+  --AGI-Drawer-width: 320px;
+  --AGI-Desktop-Drawer-width: clamp(300px, 20.17vw, 400px); /* Responsive drawer width for desktop */
+  --AGI-Optima-Radius: 0.75rem; /* 0.75rem is equivalent to var(--joy-radius-lg) */
 }
 
+/* Class for ellipsis text behavior */
 .agi-ellipsize {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+  white-space: nowrap; /* Prevents text wrapping */
+  overflow: hidden; /* Hides any overflowing text */
+  text-overflow: ellipsis; /* Displays an ellipsis (...) to indicate truncated text */
 }
 
 /* Prevents pull-to-refresh on mobile, so it's not triggered while scrolling the chat inadvertently */
 body {
-    overscroll-behavior-y: none;
+  overscroll-behavior-y: none;
+}
+
+/* Added a general utility class for margin */
+.agi-margin-top-small {
+  margin-top: 0.5rem;
+}
+
+/* Added a general utility class for padding */
+.agi-padding-horizontal-small {
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
 }
