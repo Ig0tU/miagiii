@@ -1,59 +1,96 @@
 import * as React from 'react';
 
-import { Box, FormControl, FormHelperText, FormLabel, IconButton, Input } from '@mui/joy';
+import {
+  Box,
+  FormControl,
+  FormHelperText,
+  FormLabel,
+  IconButton,
+  Input,
+} from '@mui/joy';
 import KeyIcon from '@mui/icons-material/Key';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 
-
-export function FormInputKey(props: {
-  autoCompleteId: string, // introduced to avoid clashes
-  label?: string, rightLabel?: string | React.JSX.Element,
-  description?: string | React.JSX.Element,
-  value: string, onChange: (value: string) => void,
-  placeholder?: string, isVisible?: boolean,
-  required: boolean, isError?: boolean,
-  noKey?: boolean,
+export function FormInputKey({
+  autoCompleteId,
+  label,
+  rightLabel,
+  description,
+  value,
+  onChange,
+  placeholder,
+  isVisible,
+  required,
+  isError,
+  noKey,
+}: {
+  autoCompleteId: string;
+  label?: string;
+  rightLabel?: string | React.ReactNode;
+  description?: string | React.ReactNode;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  isVisible?: boolean;
+  required: boolean;
+  isError?: boolean;
+  noKey?: boolean;
 }) {
+  const [internalIsVisible, setInternalIsVisible] = React.useState(!!isVisible);
 
-  // internal state is only whether the text is visible or not - the actual value is stored in the parent
-  const [isVisible, setIsVisible] = React.useState(!!props.isVisible);
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    onChange(e.target.value);
+  };
 
-  const handleChange = (e: React.ChangeEvent) => props.onChange((e.target as HTMLInputElement).value);
+  const endDecorator = React.useMemo(() => {
+    if (!value || noKey) {
+      return null;
+    }
+    return (
+      <IconButton onClick={() => setInternalIsVisible(!internalIsVisible)} disabled={!value}>
+        {internalIsVisible ? <VisibilityIcon /> : <VisibilityOffIcon />}
+      </IconButton>
+    );
+  }, [value, noKey, internalIsVisible]);
 
-  const endDecorator = React.useMemo(() => !!props.value && !props.noKey && (
-    <IconButton onClick={() => setIsVisible(!isVisible)}>
-      {isVisible ? <VisibilityIcon /> : <VisibilityOffIcon />}
-    </IconButton>
-  ), [props.value, props.noKey, isVisible]);
-
-  const acId = (props.noKey ? 'input-text-' : 'input-key-') + props.autoCompleteId;
+  const acId = `input-${autoCompleteId}`;
 
   return (
-    <FormControl id={acId}>
-
-      {!!props.label && <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap', justifyContent: 'space-between' }}>
-        <FormLabel>{props.label}</FormLabel>
-        {!!props.rightLabel && <FormHelperText sx={{ display: 'block' }}>
-          {props.rightLabel}
-        </FormHelperText>}
-      </Box>}
+    <FormControl
+      id={acId}
+      sx={{ marginTop: 2, marginBottom: 2 }}
+      required={required}
+      error={isError}
+    >
+      {label && (
+        <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+          <FormLabel sx={{ marginTop: 0.5, marginBottom: 0.5 }}>{label}</FormLabel>
+          {rightLabel && <FormHelperText sx={{ display: 'block', marginTop: 0.5, marginBottom: 0.5 }}>
+            {rightLabel}
+          </FormHelperText>}
+        </Box>
+      )}
 
       <Input
         key={acId}
         name={acId}
-        autoComplete='off'
-        // autoComplete={props.noKey ? 'off' : 'new-password'}
-        variant={props.required ? 'outlined' : 'outlined' /* 'soft */}
-        value={props.value} onChange={handleChange}
-        placeholder={props.required ? props.placeholder ? 'required: ' + props.placeholder : 'required' : props.placeholder || '...'}
-        type={(isVisible || !!props.noKey) ? 'text' : 'password'}
-        error={props.isError}
-        startDecorator={!props.noKey && <KeyIcon />}
+        autoComplete="off"
+        variant={required ? 'outlined' : 'soft'}
+        value={value}
+        onChange={handleChange}
+        placeholder={required ? (placeholder ? `required: ${placeholder}` : 'required') : placeholder || '...'}
+        type={(internalIsVisible || !noKey) ? 'text' : 'password'}
+        required={required}
+        error={isError}
+        startDecorator={!noKey && <KeyIcon />}
         endDecorator={endDecorator}
+        sx={{ marginTop: 1, marginBottom: 1 }}
       />
 
-      {props.description && <FormHelperText sx={{ display: 'block' }}>{props.description}</FormHelperText>}
+      {description && <FormHelperText sx={{ display: 'block', marginTop: 0.5, marginBottom: 0.5 }}>
+        {description}
+      </FormHelperText>}
 
     </FormControl>
   );
