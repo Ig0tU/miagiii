@@ -6,16 +6,28 @@ import * as React from 'react';
 import { useQuery } from '@tanstack/react-query';
 
 import { frontendSideFetch } from '~/common/util/clientFetchers';
-
 import { fetchYouTubeTranscript } from './youtube.fetcher';
 import { apiAsync } from '~/common/util/trpc.client';
 
 // configuration
 const USE_FRONTEND_FETCH = false;
 
-
 export interface YTVideoTranscript {
   title: string;
+  transcript: string;
+  thumbnailUrl: string;
+}
+
+export interface QueryKeys {
+  transcript: [string];
+}
+
+export interface QueryFnArgs {
+  videoId: string;
+}
+
+export interface QueryFnResult {
+  videoTitle: string;
   transcript: string;
   thumbnailUrl: string;
 }
@@ -24,21 +36,36 @@ export function useYouTubeTranscript(videoID: string | null, onNewTranscript: (t
 
   // state
   const [transcript, setTranscript] = React.useState<YTVideoTranscript | null>(null);
+  const [isLoading, setIsLoading] = React.useState<boolean>(true);
 
   // data
-  const { data, isFetching, isError, error } = useQuery({
+  const { data, isFetching, isError, error } = useQuery<QueryFnResult, Error, QueryFnResult, QueryKeys, QueryFnArgs>({
     enabled: !!videoID,
     queryKey: ['transcript', videoID],
-    queryFn: async () => USE_FRONTEND_FETCH
-      ? fetchYouTubeTranscript(videoID!, url => frontendSideFetch(url).then(res => res.text()))
-      : apiAsync.youtube.getTranscript.query({ videoId: videoID! }),
+    queryFn: async ({ videoId }) => {
+      if (USE_FRONTEND_FETCH) {
+        const url = `https://www.youtube.com/oembed?format=json&url=http://www.youtube.com/watch?v=${videoId}`;
+        const response = await frontendSideFetch(url);
+        const data = await response.json();
+        const transcriptData = await fetchYouTubeTranscript(videoId, url => frontendSideFetch(url).then(res => res.text()));
+        return {
+          videoTitle: data.title,
+          transcript: transcriptData.transcript,
+          thumbnailUrl: data.thumbnail_url,
+        };
+      } else {
+        return apiAsync.youtube.getTranscript.query({ videoId });
+      }
+    },
     staleTime: Infinity,
+    select: (data) => data,
   });
 
   // update the transcript when the underlying data changes
   React.useEffect(() => {
     if (!data) {
-      // setTranscript(null);
+      setTranscript(null);
+      setIsLoading(false);
       return;
     }
     const transcript = {
@@ -48,11 +75,12 @@ export function useYouTubeTranscript(videoID: string | null, onNewTranscript: (t
     };
     setTranscript(transcript);
     onNewTranscript(transcript);
+    setIsLoading(false);
   }, [data, onNewTranscript]);
-
 
   return {
     transcript,
+    isLoading,
     isFetching,
     isError, error,
   };
