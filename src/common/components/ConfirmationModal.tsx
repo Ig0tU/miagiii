@@ -19,7 +19,7 @@ export interface ConfirmationModalProps {
   title?: string | React.ReactNode;
   noTitleBar?: boolean;
   lowStakes?: boolean;
-  confirmationText: string | React.ReactNode;
+  content?: string | React.ReactNode;
   confirmText?: React.ReactNode;
   cancelText?: React.ReactNode;
   cancelStartDecorator?: React.ReactNode;
@@ -32,7 +32,7 @@ export function ConfirmationModal({
   title = 'Confirmation',
   noTitleBar = false,
   lowStakes = false,
-  confirmationText,
+  content,
   confirmText = 'Confirm',
   cancelText = 'Cancel',
   cancelStartDecorator,
@@ -61,9 +61,20 @@ export function ConfirmationModal({
     >
       {!noTitleBar && <Divider />}
 
-      <Typography level="body-md" sx={{ mt: theme.spacing(1.5) }}>
-        {confirmationText}
-      </Typography>
+      {content && (
+        <Typography level="body-md" sx={{ mt: theme.spacing(1.5) }}>
+          {content}
+        </Typography>
+      )}
+
+      {lowStakes && (
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+          <WarningRoundedIcon color="warning" />
+          <Typography level="body-sm" sx={{ ml: 1 }}>
+            This is a low stakes action
+          </Typography>
+        </Box>
+      )}
 
       <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end', mt: 2 }}>
         <Button
