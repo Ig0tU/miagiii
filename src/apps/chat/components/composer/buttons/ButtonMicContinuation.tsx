@@ -1,17 +1,39 @@
 import * as React from 'react';
-
-import { Box, IconButton, Tooltip, Typography } from '@mui/joy';
-import { ColorPaletteProp, SxProps, VariantProp, SizeProp, DisableProp, RefProp } from '@mui/joy/styles/types';
+import {
+  Box,
+  IconButton,
+  Tooltip,
+  Typography,
+  SxProps,
+  VariantProp,
+  ColorPaletteProp,
+  SizeProp,
+  DisableProp,
+  RefProp,
+} from '@mui/joy';
 import AutoModeIcon from '@mui/icons-material/AutoMode';
 
 type MicContinuationLegendProps = {
   sx?: SxProps;
+  color?: ColorPaletteProp;
 };
 
 const MicContinuationLegend = (props: MicContinuationLegendProps) => {
   return (
-    <Box sx={{ px: 1, py: 0.75, lineHeight: '1.5rem', ...props.sx }}>
-      <Typography level="body2">Voice Continuation</Typography>
+    <Box
+      sx={{
+        px: 1,
+        py: 0.75,
+        lineHeight: '1.5rem',
+        display: 'flex',
+        alignItems: 'center',
+        ...props.sx,
+      }}
+    >
+      <Typography level="body2" mr={1}>
+        Voice Continuation
+      </Typography>
+      {props.color && <Typography level="body2" color={props.color}>•</Typography>}
     </Box>
   );
 };
@@ -27,18 +49,14 @@ type ButtonMicContinuationProps = {
   size?: SizeProp;
 };
 
-export const ButtonMicContinuationMemo = React.memo(ButtonMicContinuation);
+const ButtonMicContinuationMemo = React.memo(ButtonMicContinuation);
 
 function ButtonMicContinuation(props: ButtonMicContinuationProps) {
   return (
     <Tooltip
       placement="bottom"
       title={
-        props.disabled ? (
-          <MicContinuationLegend sx={{ color: 'neutral.400' }} />
-        ) : (
-          <MicContinuationLegend />
-        )
+        <MicContinuationLegend color={props.disabled ? 'neutral.400' : undefined} />
       }
     >
       <IconButton
@@ -56,3 +74,5 @@ function ButtonMicContinuation(props: ButtonMicContinuationProps) {
     </Tooltip>
   );
 }
+
+export { ButtonMicContinuationMemo as ButtonMicContinuation };
