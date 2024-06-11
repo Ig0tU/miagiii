@@ -1,10 +1,12 @@
+// Import statements
 import * as React from 'react';
-
 import { AppCall } from '../src/apps/call/AppCall';
+import { WithLayoutProps, withLayout } from '~/common/layout/withLayout';
 
-import { withLayout } from '~/common/layout/withLayout';
+// Define the CallPage component
+const CallPage: React.FC<WithLayoutProps> = ({ type }) => {
+  return <AppCall />;
+};
 
-
-export default function CallPage() {
-  return withLayout({ type: 'optima' }, <AppCall />);
-}
+// Apply the withLayout higher-order component
+export default withLayout({ type: 'optima' })(CallPage);
