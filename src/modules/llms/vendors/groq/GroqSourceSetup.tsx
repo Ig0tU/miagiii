@@ -1,63 +1,84 @@
 import * as React from 'react';
+import { Typography, Link as MuiLink } from '@mui/joy';
 
-import { Typography } from '@mui/joy';
-
-import { AlreadySet } from '~/common/components/AlreadySet';
-import { FormInputKey } from '~/common/components/forms/FormInputKey';
-import { InlineError } from '~/common/components/InlineError';
-import { Link } from '~/common/components/Link';
-import { SetupFormRefetchButton } from '~/common/components/forms/SetupFormRefetchButton';
-
-import type { DModelSourceId } from '../../store-llms';
+import { AlreadySet, FormInputKey, InlineError, Link, SetupFormRefetchButton } from '~/common/components';
+import { DModelSourceId, useSourceSetup, useLlmUpdateModels } from '../../store-llms';
 import { ModelVendorGroq } from './groq.vendor';
-import { useLlmUpdateModels } from '../../llm.client.hooks';
-import { useSourceSetup } from '../useSourceSetup';
-
 
 const GROQ_REG_LINK = 'https://console.groq.com/keys';
 
+interface GroqSourceSetupProps {
+  sourceId: DModelSourceId;
+}
 
-export function GroqSourceSetup(props: { sourceId: DModelSourceId }) {
-
-  // external state
+export function GroqSourceSetup(props: GroqSourceSetupProps) {
   const {
-    source, sourceHasLLMs, access,
-    sourceSetupValid, hasNoBackendCap: needsUserKey, updateSetup,
+    source,
+    access,
+    sourceSetupValid,
+    hasNoBackendCap: needsUserKey,
+    updateSetup,
   } = useSourceSetup(props.sourceId, ModelVendorGroq);
 
-  // derived state
   const { oaiKey: groqKey } = access;
 
-  // key validation
   const shallFetchSucceed = !needsUserKey || (!!groqKey && sourceSetupValid);
   const showKeyError = !!groqKey && !sourceSetupValid;
 
-  // fetch models
-  const { isFetching, refetch, isError, error } =
-    useLlmUpdateModels(!sourceHasLLMs && shallFetchSucceed, source);
+  const {
+    isFetching,
+    refetch,
+    isError,
+    error: refetchError,
+  } = useLlmUpdateModels(shallFetchSucceed, source);
 
+  const isErrorExists = isError && refetchError;
 
-  return <>
+  return (
+    <>
+      <FormInputKey
+        autoCompleteId="groq-key"
+        label="Groq API Key"
+        rightLabel={
+          <>
+            {needsUserKey ? (
+              !groqKey ? (
+                <MuiLink
+                  level="body-sm"
+                  href={GROQ_REG_LINK}
+                  target="_blank"
+                >
+                  API keys
+                </MuiLink>
+              ) : (
+                <AlreadySet />
+              )
+            ) : null}
+          </>
+        }
+        value={groqKey}
+        onChange={(value) => updateSetup({ groqKey: value })}
+        required={needsUserKey}
+        isError={showKeyError}
+        placeholder="..."
+      />
 
-    <FormInputKey
-      autoCompleteId='groq-key' label='Groq API Key'
-      rightLabel={<>{needsUserKey
-        ? !groqKey && <Link level='body-sm' href={GROQ_REG_LINK} target='_blank'>API keys</Link>
-        : <AlreadySet />}
-      </>}
-      value={groqKey} onChange={value => updateSetup({ groqKey: value })}
-      required={needsUserKey} isError={showKeyError}
-      placeholder='...'
-    />
+      <Typography level="body-sm">
+        Groq offers inference as a service for a variety of models. See the{' '}
+        <MuiLink href="https://console.groq.com/docs/quickstart" target="_blank">
+          Groq
+        </MuiLink>{' '}
+        documentation for more information.
+      </Typography>
 
-    <Typography level='body-sm'>
-      <Link href='https://console.groq.com/docs/quickstart'>Groq</Link> offers inference
-      as a service for a variety of models. See the <Link href='https://www.groq.com/' target='_blank'>Groq</Link> website for more information.
-    </Typography>
+      <SetupFormRefetchButton
+        refetch={refetch}
+        disabled={!shallFetchSucceed || isFetching}
+        loading={isFetching}
+        error={isErrorExists}
+      />
 
-    <SetupFormRefetchButton refetch={refetch} disabled={/*!shallFetchSucceed ||*/ isFetching} loading={isFetching} error={isError} />
-
-    {isError && <InlineError error={error} />}
-
-  </>;
+      {isErrorExists && <InlineError error={refetchError} />}
+    </>
+  );
 }
