@@ -1,83 +1,84 @@
-import * as React from 'react';
-import { cleanupEfficiency, Diff as TextDiff, DIFF_DELETE, DIFF_INSERT, makeDiff } from '@sanity/diff-match-patch';
+import React, { useEffect, useMemo, useState } from 'react';
+import {
+  cleanupEfficiency,
+  Diff as TextDiff,
+  DIFF_DELETE,
+  DIFF_INSERT,
+  makeDiff,
+} from '@sanity/diff-match-patch';
+import { SxProps, Theme, useTheme } from '@mui/joy/styles';
+import { Box, Typography } from '@mui/joy';
+import type { DiffBlock as DiffBlockType } from './blocks';
 
-import type { SxProps } from '@mui/joy/styles/types';
-import { Box, Typography, useTheme } from '@mui/joy';
+type TextDiffType = [op: string, text: string];
 
-import type { DiffBlock } from './blocks';
+type Props = {
+  diffBlock: DiffBlockType;
+  sx?: SxProps<Theme>;
+};
 
+const styleAdd: SxProps<Theme> = {
+  backgroundColor: ({ palette }) => `rgba(${palette.success.lightChannel} / 1)`,
+  color: ({ palette }) => palette.success.softColor,
+  padding: '0.1rem 0.1rem',
+  margin: '0 -0.1rem',
+};
 
-export function useSanityTextDiffs(_text: string, _diffText: string | undefined, enabled: boolean) {
-  // state
-  const [diffs, setDiffs] = React.useState<TextDiff[] | null>(null);
+const styleSub: SxProps<Theme> = {
+  backgroundColor: ({ palette }) => `rgba(${palette.danger.darkChannel} / 0.05)`,
+  color: ({ palette }) => palette.danger.plainColor,
+  padding: '0 0.25rem',
+  margin: '0 -0.25rem',
+  textDecoration: 'line-through',
+};
 
-  const inputText = enabled ? _text : null;
-  const inputPrevText = enabled ? _diffText : null;
+const styleUnchanged: SxProps<Theme> = {
+  backgroundColor: ({ palette }) => `rgba(${palette.neutral.mainChannel} / 0.05)`,
+};
 
-  // async processing of diffs
-  React.useEffect(() => {
-    if (!inputText || !inputPrevText)
-      return setDiffs(null);
+export function useSanityTextDiffs(text: string, diffText: string | undefined, enabled: boolean) {
+  const [diffs, setDiffs] = useState<TextDiffType[] | null>(null);
+
+  useEffect(() => {
+    if (!text || !diffText) {
+      setDiffs(null);
+      return;
+    }
 
     const callback = () => {
-      setDiffs(
-        cleanupEfficiency(makeDiff(inputPrevText, inputText, {
-          timeout: 1,
-          checkLines: true,
-        }), 4),
-      );
+      setDiffs(cleanupEfficiency(makeDiff(diffText, text, { timeout: 1, checkLines: true }), 4));
     };
 
-    // slight delay to cancel the previous operation if too close to this
     const timeout = setTimeout(callback, 200);
     return () => clearTimeout(timeout);
-  }, [inputPrevText, inputText]);
+  }, [text, diffText]);
 
   return diffs;
 }
 
-
-export const RenderTextDiff = (props: { diffBlock: DiffBlock; sx?: SxProps; }) => {
-
-  // external state
+export const RenderTextDiff = (props: Props) => {
   const theme = useTheme();
 
-  // derived state
-  const textDiffs: TextDiff[] = props.diffBlock.textDiffs;
-
-  // text added
-  const styleAdd = {
-    // backgroundColor: theme.vars.palette.success.softBg,
-    backgroundColor: `rgba(${theme.palette.mode === 'light' ? theme.vars.palette.success.lightChannel : theme.vars.palette.success.darkChannel} / 1)`,
-    color: theme.vars.palette.success.softColor,
-    padding: '0.1rem 0.1rem', margin: '0 -0.1rem',
-  };
-
-  // text removed (strike-through)
-  const styleSub = {
-    backgroundColor: `rgba(${theme.vars.palette.danger.darkChannel} / 0.05)`,
-    color: theme.vars.palette.danger.plainColor,
-    padding: '0 0.25rem', margin: '0 -0.25rem',
-    textDecoration: 'line-through',
-  };
-
-  const styleUnchanged = {
-    // backgroundColor: `rgba(${theme.vars.palette.neutral.mainChannel} / 0.05)`,
-  };
+  const textDiffs = useMemo(() => props.diffBlock.textDiffs, [props.diffBlock.textDiffs]);
 
   return (
     <Typography
       sx={{
         mx: 1.5,
-        // display: 'flex', alignItems: 'baseline',
         overflowWrap: 'anywhere',
         whiteSpace: 'break-spaces',
         display: 'block',
         ...props.sx,
       }}
     >
-      {textDiffs.map(([op, text], index) =>
-        <Box component='span' key={'diff-' + index} sx={op === DIFF_DELETE ? styleSub : op === DIFF_INSERT ? styleAdd : styleUnchanged}>{text}</Box>)}
+      {textDiffs.map(([op, text], index) => (
+        <Box
+          key={'diff-' + index}
+          sx={op === DIFF_DELETE ? styleSub : op === DIFF_INSERT ? styleAdd : styleUnchanged}
+        >
+          {text}
+        </Box>
+      ))}
     </Typography>
   );
 };
