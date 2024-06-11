@@ -2,7 +2,6 @@ import Dexie from 'dexie';
 
 import { DBlobAudioItem, DBlobDBItem, DBlobImageItem, DBlobItem, DBlobMetaDataType } from './dblobs.types';
 
-
 class DigitalAssetsDB extends Dexie {
   items!: Dexie.Table<DBlobDBItem, string>;
 
@@ -16,40 +15,43 @@ class DigitalAssetsDB extends Dexie {
 
 const db = new DigitalAssetsDB();
 
-
-// CRUD
-
-
-export async function addDBlobItem(item: DBlobItem): Promise<void> {
+export async function addDBlobItem<T extends DBlobItem>(item: T): Promise<void> {
   const dbItem: DBlobDBItem = {
     ...item,
     uId: '1',
     wId: '1',
-    cId: 'global', // context Id
+    cId: item.type ? 'context_' + item.type : 'global', // context Id
   };
   await db.items.add(dbItem);
 }
 
-export async function getDBlobItemsByType<T extends DBlobItem>(type: T['type']) {
-  return await db.items.where('type').equals(type).toArray() as unknown as T[];
+export async function getDBlobItemsByType<T extends DBlobItem>(type: T['type']): Promise<T[]> {
+  return await db.items.where('type').equals(type).toArray() as T[];
 }
 
-export async function getItemsByMimeType<T extends DBlobItem>(mimeType: T['data']['mimeType']) {
-  return await db.items.where('data.mimeType').equals(mimeType).toArray() as unknown as T[];
+export async function getDBlobItemsByMimeType<T extends DBlobItem>(mimeType: T['data']['mimeType']): Promise<T[]> {
+  return await db.items.where('data.mimeType').equals(mimeType).toArray() as T[];
 }
 
-export async function getItemById<T extends DBlobItem = DBlobItem>(id: string) {
+export async function getDBlobItemsByMimeTypeAndType<T extends DBlobItem>(mimeType: T['data']['mimeType'], type: T['type']): Promise<T[]> {
+  return await db.items.where('data.mimeType').equals(mimeType).and(item => item.type === type).toArray() as T[];
+}
+
+export async function getItemById<T extends DBlobItem = DBlobItem>(id: string): Promise<T | undefined> {
   return await db.items.get(id) as T | undefined;
 }
 
-export async function updateDBlobItem(id: string, updates: Partial<DBlobItem>) {
-  return db.items.update(id, updates);
+export async function updateDBlobItem<T extends DBlobItem>(id: string, updates: Partial<T>): Promise<void> {
+  if (id && updates) {
+    await db.items.update(id, updates);
+  }
 }
 
-export async function deleteDBlobItem(id: string) {
-  return db.items.delete(id);
+export async function deleteDBlobItem(id: string): Promise<void> {
+  if (id) {
+    await db.items.delete(id);
+  }
 }
-
 
 // Example usage:
 async function getAllImages(): Promise<DBlobImageItem[]> {
