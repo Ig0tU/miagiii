@@ -30,7 +30,7 @@ export const ModelVendorLMStudio: IModelVendor<SourceSetupLMStudio, OpenAIAccess
     };
   },
 
-  getTransportAccess(partialSetup): OpenAIAccessSchema {
+  getTransportAccess(partialSetup: SourceSetupLMStudio): OpenAIAccessSchema {
     return {
       dialect: "lmstudio",
       oaiKey: "",
@@ -44,3 +44,7 @@ export const ModelVendorLMStudio: IModelVendor<SourceSetupLMStudio, OpenAIAccess
   // OpenAI transport ('lmstudio' dialect in 'access')
   ...ModelVendorOpenAI,
 };
+
+export { SourceSetupLMStudio };
+export { initializeSetup };
+export { getTransportAccess };
