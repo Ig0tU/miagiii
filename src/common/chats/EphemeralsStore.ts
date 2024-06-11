@@ -10,10 +10,10 @@ import type { ConversationHandler } from './ConversationHandler';
  * DEphemeral: For ReAct sidebars, displayed under the chat
  */
 export interface DEphemeral {
-  id: string;
-  title: string;
-  text: string;
-  state: object;
+  readonly id: string;
+  readonly title: string;
+  readonly text: string;
+  readonly state: object;
 }
 
 function createDEphemeral(title: string, initialText: string): DEphemeral {
@@ -49,7 +49,6 @@ export class EphemeralsStore extends EventTarget {
 
   delete(ephemeralId: string): void {
     const index = this.ephemerals.findIndex(e => e.id === ephemeralId);
-    console.log('EphemeralsStore: delete', index);
     if (index >= 0) {
       this.ephemerals.splice(index, 1);
       dispatchEphemeralsChanged(this, this.ephemerals);
@@ -94,10 +93,15 @@ export function useEphemerals(conversationHandler: ConversationHandler | null): 
   const [ephemerals, setEphemerals] = React.useState<DEphemeral[]>(
     () => conversationHandler ? conversationHandler.ephemeralsStore.find() : []);
 
+  const handleEphemeralsChanged = React.useCallback((detail: DEphemeral[]) => {
+    setEphemerals(detail);
+  }, []);
+
   React.useEffect(() => {
     if (!conversationHandler) return;
-    return installEphemeralsChangedListener(conversationHandler.ephemeralsStore.find(), conversationHandler.ephemeralsStore, (detail) => setEphemerals([...detail]));
-  }, [conversationHandler]);
+    const handler = installEphemeralsChangedListener(conversationHandler.ephemeralsStore.find(), conversationHandler.ephemeralsStore, handleEphemeralsChanged);
+    return () => handler.disconnect();
+  }, [conversationHandler, handleEphemeralsChanged]);
 
   return ephemerals;
 }
