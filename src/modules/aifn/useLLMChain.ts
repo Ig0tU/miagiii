@@ -49,7 +49,7 @@ const initChainState = (llmId: DLLMId, input: string, steps: LLMChainStep[]): Ch
   };
 };
 
-const updateChainState = (chain: ChainState, history: VChatMessageIn[], stepIdx: number, output: string): ChainState => {
+const updateChainState = (chain: ChainState, stepIdx: number, output: string): ChainState => {
   const stepsCount = chain.steps.length;
   return {
     ...chain,
@@ -59,7 +59,6 @@ const updateChainState = (chain: ChainState, history: VChatMessageIn[], stepIdx:
         output: output,
         isComplete: true,
       } : step),
-    chatHistory: history,
     progress: Math.round(100 * (stepIdx + 1) / stepsCount) / 100,
     output: (stepIdx === stepsCount - 1) ? output : null,
   };
@@ -69,6 +68,23 @@ const implodeText = (text: string, maxLength: number | null) => {
   if (!maxLength || text.length <= maxLength) return text;
   const halfLength = Math.floor(maxLength / 2);
   return `${text.substring(0, halfLength)}\n...\n${text.substring(text.length - halfLength)}`;
+};
+
+const getLLMChatInput = (chainStep: LLMChainStep, chainHistory: VChatMessageIn[]) => {
+  const llmChatInput: VChatMessageIn[] = [...chainHistory];
+
+  if (chainStep.setSystem) {
+    llmChatInput.filter((msg) => msg.role !== 'system');
+    llmChatInput.unshift({ role: 'system', content: chainStep.setSystem });
+  }
+  if (chainStep.addUserInput)
+    llmChatInput.push({ role: 'user', content: implodeText(chain.input, chain.safeInputLength) });
+  if (chainStep.addPrevAssistant && chainStep.addPrevAssistant && chainStep.addPrevAssistant.length > 0)
+    llmChatInput.push({ role: 'assistant', content: implodeText(chain.steps[chainStep.addPrevAssistant - 1].output!, chain.safeInputLength) });
+  if (chainStep.addUser)
+    llmChatInput.push({ role: 'user', content: chainStep.addUser });
+
+  return llmChatInput;
 };
 
 /**
@@ -122,19 +138,7 @@ const useLLMChain = (steps: LLMChainStep[], llmId: DLLMId | undefined, chainInpu
     const chainStep = chain.steps[stepIdx];
     if (chainStep.output) return console.log('WARNING - Output overlap - FIXME', chainStep);
 
-    let llmChatInput: VChatMessageIn[] = [...chain.chatHistory];
-    const instruction = chainStep.ref;
-
-    if (instruction.setSystem) {
-      llmChatInput = llmChatInput.filter((msg) => msg.role !== 'system');
-      llmChatInput.unshift({ role: 'system', content: instruction.setSystem });
-    }
-    if (instruction.addUserInput)
-      llmChatInput.push({ role: 'user', content: implodeText(chain.input, chain.safeInputLength) });
-    if (instruction.addPrevAssistant && stepIdx > 0)
-      llmChatInput.push({ role: 'assistant', content: implodeText(chain.steps[stepIdx - 1].output!, chain.safeInputLength) });
-    if (instruction.addUser)
-      llmChatInput.push({ role: 'user', content: instruction.addUser });
+    const llmChatInput = getLLMChatInput(chainStep, chain.chatHistory);
 
     let stepDone = false;
     const stepAbortController = new AbortController();
@@ -150,7 +154,7 @@ const useLLMChain = (steps: LLMChainStep[], llmId: DLLMId | undefined, chainInpu
       })
       .then(() => {
         if (stepAbortController.signal.aborted) return;
-        const chainState = updateChainState(chain, llmChatInput, stepIdx, interimText);
+        const chainState = updateChainState(chain, stepIdx, interimText);
         if (chainState.output && onSuccess)
           onSuccess(chainState.output, chainState.input);
         setChain(chainState);
