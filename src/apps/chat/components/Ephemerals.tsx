@@ -1,14 +1,10 @@
-import * as React from 'react';
-
+import React from 'react';
 import { Box, Grid, IconButton, Sheet, styled, Typography } from '@mui/joy';
 import { SxProps } from '@mui/joy/styles/types';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
-
 import { ConversationsManager } from '~/common/chats/ConversationsManager';
 import { DConversationId } from '~/common/state/store-chats';
 import { DEphemeral } from '~/common/chats/EphemeralsStore';
-import { lineHeightChatTextMd } from '~/common/app.theme';
-
 
 const StateLine = styled(Typography)(({ theme }) => ({
   textOverflow: 'ellipsis',
@@ -17,7 +13,7 @@ const StateLine = styled(Typography)(({ theme }) => ({
   fontSize: theme.fontSize.xs,
   fontFamily: theme.fontFamily.code,
   marginLeft: theme.spacing(1),
-  lineHeight: lineHeightChatTextMd,
+  lineHeight: theme.typography.lineHeight.md,
 }));
 
 function isPrimitive(value: any): boolean {
@@ -46,8 +42,7 @@ function ObjectRenderer({ name }: { name: string }) {
   return <StateLine><b>{name}</b>: <i>object not displayed</i></StateLine>;
 }
 
-
-function StateRenderer(props: { state: object }) {
+function StateRenderer(props: { state: Record<string, any> }) {
   if (typeof props.state !== 'object')
     return <pre>Developer Warning: state is not an object: {JSON.stringify(props.state, null, 2)}</pre>;
 
@@ -55,11 +50,11 @@ function StateRenderer(props: { state: object }) {
 
   return (
     <Box>
-      <Typography fontSize='smaller' sx={{ mb: 1 }}>
+      <Typography fontSize='sm' sx={{ mb: 1 }}>
         ## Internal State
       </Typography>
       <Sheet sx={{ p: 1 }}>
-        {!entries && <Typography level='body-sm'>No state variables</Typography>}
+        {!entries.length && <Typography level='body-sm'>No state variables</Typography>}
         {entries.map(([key, value]) =>
           isPrimitive(value)
             ? <PrimitiveRender key={'state-' + key} name={key} value={value} />
@@ -74,77 +69,69 @@ function StateRenderer(props: { state: object }) {
   );
 }
 
-
 function EphemeralItem({ conversationId, ephemeral }: { conversationId: string, ephemeral: DEphemeral }) {
-
   const handleDelete = React.useCallback(() => {
     ConversationsManager.getHandler(conversationId).ephemeralsStore.delete(ephemeral.id);
   }, [conversationId, ephemeral.id]);
 
-  return <Box
-    sx={{
-      p: { xs: 1, md: 2 },
-      position: 'relative',
-      // border: (i < ephemerals.length - 1) ? `2px solid ${theme.palette.divider}` : undefined,
-      '&:hover > button': { opacity: 1 },
-    }}>
+  return (
+    <Box
+      sx={{
+        p: { xs: 1, md: 2 },
+        position: 'relative',
+        border: (i) => (i < ephemerals.length - 1) ? `2px solid ${theme.palette.divider}` : undefined,
+        '&:hover > button': { opacity: 1 },
+      }}>
 
-    {/* Title */}
-    {ephemeral.title && <Typography level='title-sm' sx={{ mb: 1.5 }}>
-      {ephemeral.title} Development Tools
-    </Typography>}
+      {/* Title */}
+      {ephemeral.title && <Typography level='title-sm' sx={{ mb: 1.5 }}>
+        {ephemeral.title} Development Tools
+      </Typography>}
 
-    {/* Vertical | split */}
-    <Grid container spacing={2}>
+      {/* Vertical | split */}
+      <Grid container spacing={2}>
 
-      {/* Left pane (console) */}
-      <Grid xs={12} md={ephemeral.state ? 6 : 12}>
-        <Typography fontSize='smaller' sx={{ overflowWrap: 'anywhere', whiteSpace: 'break-spaces', lineHeight: lineHeightChatTextMd }}>
-          {ephemeral.text}
-        </Typography>
+        {/* Left pane (console) */}
+        <Grid xs={12} md={ephemeral.state ? 6 : 12}>
+          <Typography fontSize='sm' sx={{ overflowWrap: 'anywhere', whiteSpace: 'break-spaces', lineHeight: '1.5' }}>
+            {ephemeral.text}
+          </Typography>
+        </Grid>
+
+        {/* Right pane (state) */}
+        {!!ephemeral.state && <Grid
+          xs={12} md={6}
+          sx={{
+            borderLeft: { md: `1px dashed` },
+            borderTop: { xs: `1px dashed`, md: 'none' },
+          }}>
+          <StateRenderer state={ephemeral.state} />
+        </Grid>}
       </Grid>
 
-      {/* Right pane (state) */}
-      {!!ephemeral.state && <Grid
-        xs={12} md={6}
+      {/* Close button (right of title) */}
+      <IconButton
+        size='sm'
+        onClick={handleDelete}
         sx={{
-          borderLeft: { md: `1px dashed` },
-          borderTop: { xs: `1px dashed`, md: 'none' },
+          position: 'absolute', top: 8, right: 8,
+          opacity: { xs: 1, sm: 0.5 }, transition: 'opacity 0.3s',
         }}>
-        <StateRenderer state={ephemeral.state} />
-      </Grid>}
-    </Grid>
+        <CloseRoundedIcon />
+      </IconButton>
 
-    {/* Close button (right of title) */}
-    <IconButton
-      size='sm'
-      onClick={handleDelete}
-      sx={{
-        position: 'absolute', top: 8, right: 8,
-        opacity: { xs: 1, sm: 0.5 }, transition: 'opacity 0.3s',
-      }}>
-      <CloseRoundedIcon />
-    </IconButton>
-
-  </Box>;
+    </Box>
+  );
 }
 
-// const dashedBorderSVG = encodeURIComponent(`
-//   <svg xmlns='http://www.w3.org/2000/svg' width='100%' height='100%'>
-//     <rect x='0' y='0' width='100%' height='100%' fill='none' stroke='currentColor' stroke-width='2' stroke-dasharray='16, 2' />
-//   </svg>
-// `);
+export function Ephemerals({ ephemerals, conversationId, sx }: { ephemerals: DEphemeral[], conversationId: DConversationId | null, sx?: SxProps }) {
+  const theme = React.useTheme();
 
-
-export function Ephemerals(props: { ephemerals: DEphemeral[], conversationId: DConversationId | null, sx?: SxProps }) {
-  // global state
-  // const ephemerals = useChatStore(state => {
-  //   const conversation = state.conversations.find(conversation => conversation.id === props.conversationId);
-  //   return conversation ? conversation.ephemerals : [];
-  // }, shallow);
-
-  const ephemerals = props.ephemerals;
-  // if (!ephemerals?.length) return null;
+  const dashedBorderSVG = encodeURIComponent(`
+    <svg xmlns='http://www.w3.org/2000/svg' width='100%' height='100%'>
+      <rect x='0' y='0' width='100%' height='100%' fill='none' stroke='${theme.palette.divider}' stroke-width='2' stroke-dasharray='16, 2' />
+    </svg>
+  `);
 
   return (
     <Sheet
@@ -152,14 +139,14 @@ export function Ephemerals(props: { ephemerals: DEphemeral[], conversationId: DC
       sx={{
         borderTop: '1px solid',
         borderTopColor: 'divider',
-        // backgroundImage: `url("data:image/svg+xml,${dashedBorderSVG.replace('currentColor', '%23A1E8A1')}")`,
-        // backgroundSize: '100% 100%',
-        // backgroundRepeat: 'no-repeat',
-        ...(props.sx || {}),
+        backgroundImage: `url("data:image/svg+xml,${dashedBorderSVG}")`,
+        backgroundSize: '100% 100%',
+        backgroundRepeat: 'no-repeat',
+        ...(sx || {}),
       }}>
 
       {ephemerals.map((ephemeral, i) =>
-        props.conversationId && <EphemeralItem key={`ephemeral-${i}`} conversationId={props.conversationId} ephemeral={ephemeral} />)}
+        conversationId && <EphemeralItem key={`ephemeral-${i}`} conversationId={conversationId} ephemeral={ephemeral} />)}
 
     </Sheet>
   );
