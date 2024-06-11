@@ -1,20 +1,19 @@
 import { AzureIcon } from '~/common/components/icons/vendors/AzureIcon';
-
 import type { IModelVendor } from '../IModelVendor';
 import type { OpenAIAccessSchema } from '../../server/openai/openai.router';
 
 import { LLMOptionsOpenAI, ModelVendorOpenAI } from '../openai/openai.vendor';
 import { OpenAILLMOptions } from '../openai/OpenAILLMOptions';
-
 import { AzureSourceSetup } from './AzureSourceSetup';
 
-
 // special symbols
-export const isValidAzureApiKey = (apiKey?: string) => !!apiKey && apiKey.length >= 32;
+export const isValidAzureApiKey = (apiKey?: string): boolean => {
+  return !!apiKey && apiKey.length >= 32;
+};
 
-export interface SourceSetupAzure {
+export interface AzureSourceSetupProps {
   azureEndpoint: string;
-  azureKey: string;
+  azureApiKey: string;
 }
 
 /** Implementation Notes for the Azure Vendor
@@ -33,7 +32,7 @@ export interface SourceSetupAzure {
  *
  * Work in progress...
  */
-export const ModelVendorAzure: IModelVendor<SourceSetupAzure, OpenAIAccessSchema, LLMOptionsOpenAI> = {
+export const ModelVendorAzure: IModelVendor<AzureSourceSetupProps, OpenAIAccessSchema, LLMOptionsOpenAI> = {
   id: 'azure',
   name: 'Azure',
   rank: 14,
@@ -47,17 +46,24 @@ export const ModelVendorAzure: IModelVendor<SourceSetupAzure, OpenAIAccessSchema
   LLMOptionsComponent: OpenAILLMOptions,
 
   // functions
-  getTransportAccess: (partialSetup): OpenAIAccessSchema => ({
-    dialect: 'azure',
-    oaiKey: partialSetup?.azureKey || '',
-    oaiOrg: '',
-    oaiHost: partialSetup?.azureEndpoint || '',
-    heliKey: '',
-    moderationCheck: false,
-  }),
+  getTransportAccess: (partialSetup: AzureSourceSetupProps | undefined): OpenAIAccessSchema => {
+    const { azureEndpoint, azureApiKey: oaiKey } = partialSetup || {};
+    return {
+      dialect: 'azure',
+      oaiKey: oaiKey || '',
+      oaiOrg: '',
+      oaiHost: azureEndpoint || '',
+      heliKey: '',
+      moderationCheck: false,
+    };
+  },
 
   // OpenAI transport ('azure' dialect in 'access')
   rpcUpdateModelsOrThrow: ModelVendorOpenAI.rpcUpdateModelsOrThrow,
   rpcChatGenerateOrThrow: ModelVendorOpenAI.rpcChatGenerateOrThrow,
   streamingChatGenerateOrThrow: ModelVendorOpenAI.streamingChatGenerateOrThrow,
 };
+
+export * from './AzureSourceSetup';
+export * from '../openai/OpenAILLMOptions';
+export * from '../openai/openai.vendor';
