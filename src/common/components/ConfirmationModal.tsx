@@ -1,51 +1,87 @@
 import * as React from 'react';
-
-import { Box, Button, Divider, Typography } from '@mui/joy';
+import {
+  Box,
+  Button,
+  Divider,
+  IconButton,
+  Typography,
+  useTheme,
+} from '@mui/joy';
 import WarningRoundedIcon from '@mui/icons-material/WarningRounded';
+import CloseIcon from '@mui/icons-material/Close';
 
 import { GoodModal } from '~/common/components/GoodModal';
 
+export interface ConfirmationModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  title?: string | React.ReactNode;
+  noTitleBar?: boolean;
+  lowStakes?: boolean;
+  confirmationText: string | React.ReactNode;
+  confirmText?: React.ReactNode;
+  cancelText?: React.ReactNode;
+  cancelStartDecorator?: React.ReactNode;
+}
 
-/**
- * A confirmation dialog (Joy Modal)
- * Pass the question and the positive answer, and get called when it's time to close the dialog, or when the positive action is taken
- */
-export function ConfirmationModal(props: {
-  open?: boolean, onClose: () => void, onPositive: () => void,
-  title?: string | React.JSX.Element,
-  noTitleBar?: boolean,
-  lowStakes?: boolean,
-  confirmationText: string | React.JSX.Element,
-  positiveActionText: React.ReactNode,
-  negativeActionText?: React.ReactNode,
-  negativeActionStartDecorator?: React.ReactNode,
-}) {
+export function ConfirmationModal({
+  isOpen,
+  onClose,
+  onConfirm,
+  title = 'Confirmation',
+  noTitleBar = false,
+  lowStakes = false,
+  confirmationText,
+  confirmText = 'Confirm',
+  cancelText = 'Cancel',
+  cancelStartDecorator,
+}: ConfirmationModalProps) {
+  const theme = useTheme();
+
   return (
     <GoodModal
-      open={props.open === undefined ? true : props.open}
-      title={props.noTitleBar ? undefined : (props.title || 'Confirmation')}
-      titleStartDecorator={props.noTitleBar ? undefined : <WarningRoundedIcon sx={{ color: 'danger.solidBg' }} />}
-      noTitleBar={props.noTitleBar}
-      onClose={props.onClose}
+      open={isOpen}
+      title={noTitleBar ? undefined : title}
+      titleStartDecorator={
+        noTitleBar ? undefined : (
+          <IconButton
+            size="sm"
+            color="neutral"
+            onClick={onClose}
+            sx={{ p: '4px' }}
+          >
+            <CloseIcon />
+          </IconButton>
+        )
+      }
+      noTitleBar={noTitleBar}
+      onClose={onClose}
       hideBottomClose
     >
-      {!props.noTitleBar && <Divider />}
+      {!noTitleBar && <Divider />}
 
-      <Typography level='body-md'>
-        {props.confirmationText}
+      <Typography level="body-md" sx={{ mt: theme.spacing(1.5) }}>
+        {confirmationText}
       </Typography>
 
       <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end', mt: 2 }}>
-        <Button autoFocus variant='plain' color='neutral' onClick={props.onClose} startDecorator={props.negativeActionStartDecorator}>
-          {props.negativeActionText || 'Cancel'}
+        <Button
+          autoFocus
+          variant="plain"
+          color="neutral"
+          onClick={onClose}
+          startDecorator={cancelStartDecorator}
+        >
+          {cancelText}
         </Button>
         <Button
-          variant={props.lowStakes ? 'soft' : 'solid'}
-          color={props.lowStakes ? undefined : 'danger'}
-          onClick={props.onPositive}
+          variant={lowStakes ? 'soft' : 'solid'}
+          color={lowStakes ? undefined : 'danger'}
+          onClick={onConfirm}
           sx={{ lineHeight: '1.5em' }}
         >
-          {props.positiveActionText}
+          {confirmText}
         </Button>
       </Box>
     </GoodModal>
