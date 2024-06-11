@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Typography, Link as MuiLink } from '@mui/joy';
 
-import { AlreadySet, FormInputKey, InlineError, Link, SetupFormRefetchButton } from '~/common/components';
+import { AlreadySet, FormInputKey, InlineError, Link as CustomLink, SetupFormRefetchButton } from '~/common/components';
 import { DModelSourceId, useSourceSetup, useLlmUpdateModels } from '../../store-llms';
 import { ModelVendorGroq } from './groq.vendor';
 
@@ -11,28 +11,64 @@ interface GroqSourceSetupProps {
   sourceId: DModelSourceId;
 }
 
-export function GroqSourceSetup(props: GroqSourceSetupProps) {
+interface GroqSourceSetupState {
+  groqKey: string | null;
+  hasNoBackendCap: boolean;
+  sourceSetupValid: boolean;
+  isFetching: boolean;
+  isError: boolean;
+  refetchError: unknown;
+}
+
+function GroqSourceSetup(props: GroqSourceSetupProps) {
+  const { sourceId } = props;
   const {
     source,
     access,
     sourceSetupValid,
-    hasNoBackendCap: needsUserKey,
+    hasNoBackendCap,
     updateSetup,
-  } = useSourceSetup(props.sourceId, ModelVendorGroq);
-
+  } = useSourceSetup(sourceId, ModelVendorGroq);
   const { oaiKey: groqKey } = access;
-
-  const shallFetchSucceed = !needsUserKey || (!!groqKey && sourceSetupValid);
-  const showKeyError = !!groqKey && !sourceSetupValid;
 
   const {
     isFetching,
     refetch,
     isError,
     error: refetchError,
-  } = useLlmUpdateModels(shallFetchSucceed, source);
+  } = useLlmUpdateModels(sourceSetupValid && hasNoBackendCap, source);
 
-  const isErrorExists = isError && refetchError;
+  const state: GroqSourceSetupState = {
+    groqKey,
+    hasNoBackendCap,
+    sourceSetupValid,
+    isFetching,
+    isError,
+    refetchError,
+  };
+
+  return (
+    <GroqSourceSetupForm {...state} onGroqKeyChange={updateSetup} />
+  );
+}
+
+interface GroqSourceSetupFormProps extends GroqSourceSetupState {
+  onGroqKeyChange: (value: { groqKey: string }) => void;
+}
+
+function GroqSourceSetupForm(props: GroqSourceSetupFormProps) {
+  const {
+    groqKey,
+    hasNoBackendCap,
+    sourceSetupValid,
+    isFetching,
+    isError,
+    refetchError,
+    onGroqKeyChange,
+  } = props;
+
+  const shallFetchSucceed = !hasNoBackendCap || (!!groqKey && sourceSetupValid);
+  const showKeyError = !!groqKey && !sourceSetupValid;
 
   return (
     <>
@@ -41,7 +77,7 @@ export function GroqSourceSetup(props: GroqSourceSetupProps) {
         label="Groq API Key"
         rightLabel={
           <>
-            {needsUserKey ? (
+            {hasNoBackendCap ? (
               !groqKey ? (
                 <MuiLink
                   level="body-sm"
@@ -56,18 +92,18 @@ export function GroqSourceSetup(props: GroqSourceSetupProps) {
             ) : null}
           </>
         }
-        value={groqKey}
-        onChange={(value) => updateSetup({ groqKey: value })}
-        required={needsUserKey}
+        value={groqKey || ''}
+        onChange={(value) => onGroqKeyChange({ groqKey: value })}
+        required={hasNoBackendCap}
         isError={showKeyError}
         placeholder="..."
       />
 
       <Typography level="body-sm">
         Groq offers inference as a service for a variety of models. See the{' '}
-        <MuiLink href="https://console.groq.com/docs/quickstart" target="_blank">
+        <CustomLink href="https://console.groq.com/docs/quickstart" target="_blank">
           Groq
-        </MuiLink>{' '}
+        </CustomLink>{' '}
         documentation for more information.
       </Typography>
 
@@ -75,10 +111,12 @@ export function GroqSourceSetup(props: GroqSourceSetupProps) {
         refetch={refetch}
         disabled={!shallFetchSucceed || isFetching}
         loading={isFetching}
-        error={isErrorExists}
+        error={isError}
       />
 
-      {isErrorExists && <InlineError error={refetchError} />}
+      {isError && <InlineError error={refetchError} />}
     </>
   );
 }
+
+export { GroqSourceSetup };
