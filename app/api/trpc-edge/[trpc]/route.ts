@@ -1,11 +1,10 @@
 import { fetchRequestHandler } from '@trpc/server/adapters/fetch';
-
-import { appRouterEdge } from '~/server/api/trpc.router-edge';
+import { AppRouterEdge } from '~/server/api/trpc.router-edge';
 import { createTRPCFetchContext } from '~/server/api/trpc.server';
 
 const handlerEdgeRoutes = (req: Request) =>
   fetchRequestHandler({
-    router: appRouterEdge,
+    router: AppRouterEdge,
     endpoint: '/api/trpc-edge',
     req,
     createContext: createTRPCFetchContext,
@@ -15,5 +14,9 @@ const handlerEdgeRoutes = (req: Request) =>
         : undefined,
   });
 
-export const runtime = 'edge';
-export { handlerEdgeRoutes as GET, handlerEdgeRoutes as POST };
+if (import.meta.url === import.meta.resolve('.')) {
+  export { handlerEdgeRoutes as GET, handlerEdgeRoutes as POST };
+  export const runtime = 'edge';
+} else {
+  export default handlerEdgeRoutes;
+}
