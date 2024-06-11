@@ -1,46 +1,49 @@
-import * as React from 'react';
+import React, { lazy, Suspense } from 'react';
+import PropTypes from 'prop-types';
 
 import type { YouTubePlayerProps } from 'react-player/youtube';
 
-
 type VideoPlayerProps = YouTubePlayerProps & {
-  // make the player responsive
   responsive?: boolean;
-  // set this to not set the full URL
   youTubeVideoId?: string;
 };
 
-const VideoPlayerDynamic = React.lazy(async () => {
+const VideoPlayerDynamic = lazy(() =>
+  import('react-player/youtube')
+    .then(({ default: ReactPlayerYouTube }) => ({ default: ReactPlayerYouTube }))
+    .catch(() => null)
+);
 
-  // dynamically import react-player (saves 7kb but still..)
-  const { default: ReactPlayerYouTube } = await import('react-player/youtube');
+const VideoPlayerComponent: React.FC<VideoPlayerProps> = (props) => {
+  const { responsive, youTubeVideoId, ...baseProps } = props;
 
-  return {
-    default: (props: YouTubePlayerProps) => {
+  if (responsive) {
+    baseProps.width = '100%';
+    baseProps.height = '100%';
+  }
 
-      const { responsive, youTubeVideoId, ...baseProps } = props;
+  if (youTubeVideoId && !baseProps.url) {
+    baseProps.url = `https://www.youtube.com/watch?v=${youTubeVideoId}`;
+  }
 
-      // responsive patch
-      if (responsive) {
-        baseProps.width = '100%';
-        baseProps.height = '100%';
-      }
+  if (!baseProps.url && !youTubeVideoId) {
+    return null;
+  }
 
-      // fill in the URL if we have a YouTube video ID
-      if (youTubeVideoId) {
-        baseProps.url = `https://www.youtube.com/watch?v=${youTubeVideoId}`;
-      }
+  return <VideoPlayerDynamic {...baseProps} />;
+};
 
-      return <ReactPlayerYouTube {...baseProps} />;
-    },
-  };
-});
-
+VideoPlayerComponent.propTypes = {
+  url: PropTypes.string,
+  youTubeVideoId: PropTypes.string,
+  responsive: PropTypes.bool,
+  ...YouTubePlayerProps,
+};
 
 export function VideoPlayer(props: VideoPlayerProps) {
   return (
-    <React.Suspense fallback={<div>Loading...</div>}>
-      <VideoPlayerDynamic {...props} />
-    </React.Suspense>
+    <Suspense fallback={<div>Loading...</div>}>
+      <VideoPlayerComponent {...props} />
+    </Suspense>
   );
 }
