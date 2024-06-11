@@ -1,10 +1,28 @@
-## BlackboxAI ##
+## BlackboxAI Integration ##
 
-integrate huggingface api -- not open ai -- into Big-Agi and only use huggingface_hub models
+## Overview
+This code integrates the Hugging Face Transformers library into Big-Agi, using only models hosted on the Hugging Face model hub. This will ensure seamless functionality and integration with the Big-Agi platform.
 
-ensure seamless funcionality and integration.
+## Files Affected
+- bigagi/integrations/blackboxai/__init__.py
+- bigagi/integrations/blackboxai/huggingface.py
 
-provide the explanation of what you changed in which file here:
+## Changes
 
-```
->>
+### bigagi/integrations/blackboxai/__init__.py
+
+The `__init__.py` file in the `bigagi/integrations/blackboxai` directory is updated to include the necessary imports and setup for the Hugging Face integration.
+
+
+
+
+### bigagi/integrations/blackboxai/huggingface.py
+
+The `huggingface.py` file in the `bigagi/integrations/blackboxai` directory contains the implementation of the `HuggingFaceModel` class, which provides a simple interface for loading and using models hosted on the Hugging Face model hub.
+
+
+
+
+This implementation provides a simple interface for loading and using models hosted on the Hugging Face model hub, with support for both CPU and GPU inference. The `HuggingFaceModel` class provides two methods: `encode`, which encodes a given text input using the model's tokenizer, and `generate`, which generates a text output given an input tensor.
+
+By using the Hugging Face Transformers library, this implementation ensures seamless functionality and integration with the Big-Agi platform, as well as compatibility with a wide range of pre-trained models.
