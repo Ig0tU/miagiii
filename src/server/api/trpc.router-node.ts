@@ -1,23 +1,21 @@
 import { createTRPCRouter, publicProcedure } from './trpc';
 
-import { browseRouter } from '~/modules/browse/browse.router';
-import { tradeRouter } from '~/modules/trade/server/trade.router';
+// Import routers
+import browseRouter from '~/modules/browse/browse.router';
+import tradeRouter from '~/modules/trade/server/trade.router';
 
-/**
- * Define shared procedures here
- */
+// Shared procedures
 const sharedProcedures = {
   // add any shared procedures here
 };
 
-/**
- * Secondary rooter, and will be sitting on an NodeJS Runtime.
- */
-export const appRouterNode = createTRPCRouter({
+// Create the root TRPC router
+const appRouterNode = createTRPCRouter({
   browse: browseRouter,
   trade: tradeRouter,
   ...sharedProcedures,
 });
 
-// export type definition of API
-export type AppRouterNode = typeof appRouterNode;
+// Export the router and its type definition
+export { appRouterNode as router };
+export type { AppRouterNode } from './trpc';
