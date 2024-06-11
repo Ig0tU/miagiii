@@ -1,0 +1,10 @@
+## BlackboxAI ##
+
+integrate huggingface api -- not open ai -- into Big-Agi and only use huggingface_hub models
+
+ensure seamless funcionality and integration.
+
+provide the explanation of what you changed in which file here:
+
+```
+>>
