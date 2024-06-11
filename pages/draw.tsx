@@ -1,10 +1,13 @@
+// src/pages/DrawPage.tsx
+
 import * as React from 'react';
+import { AppDraw } from '../apps/draw/AppDraw';
+import { WithLayoutProps, withLayout } from '~/common/layout/withLayout';
 
-import { AppDraw } from '../src/apps/draw/AppDraw';
+type DrawPageProps = WithLayoutProps;
 
-import { withLayout } from '~/common/layout/withLayout';
+const DrawPage: React.FC<DrawPageProps> = ({ layoutProps }) => {
+  return <AppDraw {...layoutProps} />;
+};
 
-
-export default function DrawPage() {
-  return withLayout({ type: 'optima' }, <AppDraw />);
-}
+export default withLayout({ type: 'optima' })(DrawPage);
