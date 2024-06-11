@@ -6,6 +6,7 @@ type Command = {
   arguments?: string[];
   description: string;
   Icon: any;
+  execute?: (url: string) => void;
 };
 
 type ICommandsProvider = {
@@ -30,19 +31,34 @@ export const CommandsBrowse: ICommandsProvider = {
 
 };
 
-// Usage example
+const Command = ({ command }: { command: Command }) => {
+  const handleClick = (url: string) => {
+    if (command.execute) {
+      command.execute(url);
+    }
+  };
+
+  return (
+    <Link
+      to={`/${command.primary}`}
+      title={command.description}
+      onClick={() => handleClick(command.primary)}
+    >
+      <command.Icon /> {command.primary}
+      {command.arguments && <> ({command.arguments.join(', ')})</>}
+      <p>{command.description}</p>
+    </Link>
+  );
+};
+
 const example = () => {
   const commands = CommandsBrowse.getCommands();
 
   return (
     <Router>
       {commands.map((command, index) => (
-        <Link key={index} to={`/${command.primary}`}>
-          <command.Icon /> {command.primary}
-          {command.arguments && <> ({command.arguments.join(', ')})</>}
-          <p>{command.description}</p>
-        </Link>
+        <Command key={index} command={command} />
       ))}
     </Router>
   );
-}
+};
