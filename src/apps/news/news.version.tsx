@@ -2,19 +2,31 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import React from 'react';
 
-import { useAppStateStore } from '~/common/state/store-appstate';
-
-// update this variable every time you want to broadcast a new version to clients
-export const incrementalNewsVersion: number = 16.1;
+interface AppState {
+  usageCount: number;
+}
 
 interface NewsState {
   lastSeenNewsVersion: number;
+  incrementalNewsVersion: number;
 }
 
-export const useAppNewsStateStore = create<NewsState>()(
+const useAppStateStore = create<AppState>()(
+  persist(
+    (set) => ({
+      usageCount: 0,
+    }),
+    {
+      name: 'app-state',
+    },
+  ),
+);
+
+const useAppNewsStateStore = create<NewsState>()(
   persist(
     (set) => ({
       lastSeenNewsVersion: 0,
+      incrementalNewsVersion: 16.1,
     }),
     {
       name: 'app-news',
@@ -23,24 +35,21 @@ export const useAppNewsStateStore = create<NewsState>()(
 );
 
 function useAppState() {
-  const appStateStore = useAppStateStore();
-  const appState = useAppStateStore.getState();
-  return { appStateStore, appState };
+  return useStore.getState();
 }
 
 function useAppNewsState() {
-  const appNewsStateStore = useAppNewsStateStore();
-  const appNewsState = useAppNewsStateStore.getState();
-  return { appNewsStateStore, appNewsState };
+  const { lastSeenNewsVersion, incrementalNewsVersion } = useStore.getState();
+  return { lastSeenNewsVersion, incrementalNewsVersion };
 }
 
 export function shallRedirectToNews(): boolean {
-  const { appState } = useAppState();
-  const { appNewsState } = useAppNewsState();
-  const isNewsOutdated = (appNewsState.lastSeenNewsVersion || 0) < incrementalNewsVersion;
-  return isNewsOutdated && appState.usageCount > 2;
+  const { usageCount } = useAppState();
+  const { lastSeenNewsVersion, incrementalNewsVersion } = useAppNewsState();
+  const isNewsOutdated = lastSeenNewsVersion < incrementalNewsVersion;
+  return isNewsOutdated && usageCount > 2;
 }
 
 export function markNewsAsSeen() {
-  useAppNewsStateStore.setState({ lastSeenNewsVersion: incrementalNewsVersion });
+  useAppNewsStateStore.setState({ lastSeenNewsVersion: useAppNewsStateStore.getState().incrementalNewsVersion });
 }
