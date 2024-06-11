@@ -1,10 +1,6 @@
 import { create } from 'zustand';
 import { useShallow } from 'zustand/react/shallow';
-
-/*
- NOTE: this file is used IN THE FRONTEND - it's meant to be telling the frontend what the backend capabilities are.
- NOTE: this file is also used in the BACKEND for type safety of the returned payload.
- */
+import axios from 'axios';
 
 export interface BackendCapabilities {
   hasDB: boolean;
@@ -34,7 +30,6 @@ interface BackendStore extends BackendCapabilities {
 
 const useBackendCapabilitiesStore = create<BackendStore>()(
   (set) => ({
-
     // capabilities
     hasDB: false,
     hasBrowsing: false,
@@ -59,17 +54,33 @@ const useBackendCapabilitiesStore = create<BackendStore>()(
     setCapabilities: (capabilities: Partial<BackendCapabilities>) =>
       set({
         loadedCapabilities: true,
-        ...capabilities,
+        ...Object.assign({}, capabilities),
       }),
-
   }),
 );
 
-
 export function useKnowledgeOfBackendCaps(): [boolean, (capabilities: Partial<BackendCapabilities>) => void] {
-  return useBackendCapabilitiesStore(useShallow(state => [state.loadedCapabilities, state.setCapabilities]));
+  const [loadedCapabilities, setCapabilities] = useBackendCapabilitiesStore(useShallow(state => [state.loadedCapabilities, state.setCapabilities]));
+
+  return [loadedCapabilities, setCapabilities];
 }
 
 export function getBackendCapabilities(): BackendCapabilities {
   return useBackendCapabilitiesStore.getState();
+}
+
+// Load the backend capabilities from an API endpoint
+export function loadBackendCapabilities(): Promise<void> {
+  return new Promise((resolve) => {
+    axios.get('/api/backend-capabilities')
+      .then((response) => {
+        const capabilities = response.data as BackendCapabilities;
+        useBackendCapabilitiesStore.getState().setCapabilities(capabilities);
+        resolve();
+      })
+      .catch((error) => {
+        console.error('Error loading backend capabilities:', error);
+        resolve();
+      });
+  });
 }
