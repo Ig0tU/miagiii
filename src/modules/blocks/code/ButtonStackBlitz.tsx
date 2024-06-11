@@ -1,30 +1,24 @@
 import * as React from 'react';
-
 import { Tooltip } from '@mui/joy';
-
 import { Brand } from '~/common/app.config';
 import { StackBlitzIcon } from '~/common/components/icons/3rdparty/StackBlitzIcon';
 import { prettyTimestampForFilenames } from '~/common/util/timeUtils';
-
 import { OverlayButton } from './RenderCode';
 
-
-const _languages = [
+const supportedLanguages = [
   'typescript',
   'javascript', 'json',
   'html', 'css',
   // 'python',
 ];
 
-// Mapping of languages to StackBlitz templates
 const languageToTemplateMapping: { [language: string]: string } = {
-  typescript: 'typescript',
-  javascript: 'javascript', json: 'javascript',
+  typescript: 'ts',
+  javascript: 'js', json: 'js',
   html: 'html', css: 'html',
-  // python: 'secret-python', // webcontainers? secret-python? python?
+  // python: 'py',
 };
 
-// Mapping of languages to their primary file names in StackBlitz
 const languageToFileExtensionMapping: { [language: string]: string } = {
   typescript: 'index.ts',
   javascript: 'index.js', json: 'data.json',
@@ -32,51 +26,50 @@ const languageToFileExtensionMapping: { [language: string]: string } = {
   // python: 'main.py',
 };
 
+const isStackBlitzSupported = (language: string | null): boolean => {
+  return supportedLanguages.includes(language || '');
+};
 
-export function isStackBlitzSupported(language: string | null) {
-  return !!language && _languages.includes(language);
-}
-
-const handleOpenInStackBlitz = (code: string, language: string, title?: string) => {
-
-  const template = languageToTemplateMapping[language] || 'javascript'; // Fallback to 'javascript'
-  const fileName = languageToFileExtensionMapping[language] || 'index.js'; // Fallback to 'index.js'
+const handleOpenInStackBlitz = (code: string, language: string, title?: string): void => {
+  const template = languageToTemplateMapping[language] || 'js';
+  const fileName = languageToFileExtensionMapping[language] || 'index.js';
 
   const projectDetails = {
     files: { [fileName]: code },
-    template: template,
+    template,
     description: `${Brand.Title.Common} file created on ${prettyTimestampForFilenames()}`,
-    title: language == 'python' ? 'Python Starter' : title,
-  } as const;
+    title: language === 'python' ? 'Python Starter' : title,
+  };
 
   const form = document.createElement('form');
   form.action = 'https://stackblitz.com/run';
   form.method = 'POST';
   form.target = '_blank';
 
-  const addField = (name: string, value: string) => {
+  Object.entries(projectDetails.files).forEach(([filePath, content]) => {
     const input = document.createElement('input');
     input.type = 'hidden';
-    input.name = name;
-    input.value = value;
+    input.name = `project[files][${filePath}]`;
+    input.value = content;
     form.appendChild(input);
-  };
-
-  Object.keys(projectDetails.files).forEach((filePath) => {
-    addField(`project[files][${filePath}]`, projectDetails.files[filePath]);
   });
 
-  addField('project[description]', projectDetails.description);
-  addField('project[template]', projectDetails.template);
-  !!projectDetails.title && addField('project[title]', projectDetails.title);
+  Object.entries(projectDetails).forEach(([name, value]) => {
+    if (name !== 'files') {
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = `project[${name}]`;
+      input.value = value as string;
+      form.appendChild(input);
+    }
+  });
 
   document.body.appendChild(form);
   form.submit();
   document.body.removeChild(form);
 };
 
-
-export function ButtonStackBlitz(props: { code: string, language: string, title?: string }): React.JSX.Element {
+export const ButtonStackBlitz: React.FC<{ code: string, language: string, title?: string }> = (props) => {
   return (
     <Tooltip title='Open in StackBlitz' variant='solid'>
       <OverlayButton variant='outlined' onClick={() => handleOpenInStackBlitz(props.code, props.language, props.title)}>
@@ -84,4 +77,4 @@ export function ButtonStackBlitz(props: { code: string, language: string, title?
       </OverlayButton>
     </Tooltip>
   );
-}
+};
