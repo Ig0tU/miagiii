@@ -1,56 +1,51 @@
-# Base
+# Base image
 FROM node:18-alpine AS base
 ENV NEXT_TELEMETRY_DISABLED 1
 
-
-# Dependencies
+# Dependencies stage
 FROM base AS deps
 WORKDIR /app
 
-# Dependency files
+# Copy package files and install dependencies
 COPY package*.json ./
 COPY src/server/prisma ./src/server/prisma
+RUN apk add --no-cache --virtual .build-deps gcc libc-dev musl-dev linux-headers && \
+    npm ci && \
+    apk del .build-deps
 
-# Install dependencies, including dev (release builds should use npm ci)
-ENV NODE_ENV development
-RUN npm ci
-
-
-# Builder
+# Builder stage
 FROM base AS builder
 WORKDIR /app
 
-# Optional argument to configure GA4 at build time (see: docs/deploy-analytics.md)
-ARG NEXT_PUBLIC_GA4_MEASUREMENT_ID
-ENV NEXT_PUBLIC_GA4_MEASUREMENT_ID=${NEXT_PUBLIC_GA4_MEASUREMENT_ID}
-
-# Copy development deps and source
+# Copy dependencies from the deps stage
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+# Set GA4 measurement ID if provided
+ARG NEXT_PUBLIC_GA4_MEASUREMENT_ID
+ENV NEXT_PUBLIC_GA4_MEASUREMENT_ID=${NEXT_PUBLIC_GA4_MEASUREMENT_ID}
+
 # Build the application
-ENV NODE_ENV production
 RUN npm run build
 
-# Reduce installed packages to production-only
+# Prune production dependencies
 RUN npm prune --production
 
-
-# Runner
+# Runner stage
 FROM base AS runner
 WORKDIR /app
 
-# As user
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
+# Create non-root user and group
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nextjs
 
-# Copy Built app
+# Copy built app and production dependencies
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=nextjs:nodejs /app/src/server/prisma ./src/server/prisma
 
-# Minimal ENV for production
+# Set environment variables for production
 ENV NODE_ENV production
 ENV PATH $PATH:/app/node_modules/.bin
 
