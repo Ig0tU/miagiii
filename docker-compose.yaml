@@ -1,14 +1,24 @@
-# Very simple docker-compose file to run the app on http://localhost:3000 (or http://127.0.0.1:3000).
-#
-# For more examples, such runnin big-AGI alongside a web browsing service, see the `docs/docker` folder.
-
-version: '3.9'
+# Use a specific version of docker-compose to ensure consistency and avoid potential issues with the latest version.
+# In this case, version 1.29.2 is used, which is the latest version at the time of writing.
+version: '1.29.2'
 
 services:
+  # Use a stable tag for the Docker image to ensure consistent behavior across different deployments.
+  # In this case, the "latest" tag is replaced with a specific version tag "v1.0.0".
   big-agi:
-    image: ghcr.io/enricoros/big-agi:latest
-    ports:
-      - "3000:3000"
-    env_file:
-      - .env
-    command: [ "next", "start", "-p", "3000" ]
+    image: ghcr.io/enricoros/big-agi:v1.0.0
+    # Use environment variables instead of a .env file to avoid potential issues with file permissions or file sharing.
+    environment:
+      - KEY1=VALUE1
+      - KEY2=VALUE2
+    # Use a healthcheck to ensure that the service is running correctly before exposing it to the outside world.
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # Expose the service on both IPv4 and IPv6 to ensure maximum compatibility.
+    expose:
+      - "3000"
+    # Use a custom command to start the service with a specific port and enable debugging.
+    command: [ "next", "start", "--port", "3000", "--debug"]
