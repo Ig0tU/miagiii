@@ -1,17 +1,22 @@
 // Non-default build types
-const buildType =
-  process.env.BIG_AGI_BUILD === 'standalone' ? 'standalone'
-    : process.env.BIG_AGI_BUILD === 'static' ? 'export'
-      : undefined;
+let buildType: string | undefined;
 
-buildType && console.log(`   🧠 big-AGI: building for ${buildType}...\n`);
+if (process.env.BIG_AGI_BUILD === 'standalone') {
+  buildType = 'standalone';
+} else if (process.env.BIG_AGI_BUILD === 'static') {
+  buildType = 'export';
+}
+
+if (buildType) {
+  console.log(`   🧠 big-AGI: building for ${buildType}...\n`);
+}
 
 /** @type {import('next').NextConfig} */
 let nextConfig = {
   reactStrictMode: true,
 
   // [exports] https://nextjs.org/docs/advanced-features/static-html-export
-  ...buildType && {
+  ...(buildType && {
     output: buildType,
     distDir: 'dist',
 
@@ -20,7 +25,7 @@ let nextConfig = {
 
     // Optional: Change links `/me` -> `/me/` and emit `/me.html` -> `/me/index.html`
     // trailingSlash: true,
-  },
+  }),
 
   // [puppeteer] https://github.com/puppeteer/puppeteer/issues/11052
   experimental: {
@@ -59,7 +64,13 @@ let nextConfig = {
 
 // Validate environment variables, if set at build time. Will be actually read and used at runtime.
 // This is the reason both this file and the servr/env.mjs files have this extension.
-await import('./src/server/env.mjs');
+(async () => {
+  try {
+    await import('./src/server/env.mjs');
+  } catch (error) {
+    console.error('Error loading environment variables:', error);
+  }
+})();
 
 // conditionally enable the nextjs bundle analyzer
 if (process.env.ANALYZE_BUNDLE) {
