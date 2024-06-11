@@ -1,58 +1,43 @@
 import * as React from 'react';
+import { Sheet, styled, useTheme, SxProps } from '@mui/joy';
 
-import type { SxProps } from '@mui/joy/styles/types';
-import { Box, Sheet, styled, useTheme } from '@mui/joy';
+type BarProps = {
+  width: string;
+  height: string;
+};
 
-
-export const InvertedBarCornerItem = styled(Box)({
-  width: 'var(--Bar)',
-  height: 'var(--Bar)',
+const InvertedBarCornerItem = styled(Box)<BarProps>(({ width, height }) => ({
+  width,
+  height,
   display: 'flex',
   justifyContent: 'center',
   alignItems: 'center',
-});
+}));
 
-
-const StyledSheet = styled(Sheet)({
-  // customization
-  '--Bar': 'var(--AGI-Nav-width)',
-
-  // layout
+const StyledSheet = styled(Sheet)<BarProps>(({ width }) => ({
+  '--Bar': width,
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'center',
-}) as typeof Sheet;
+}));
 
-
-// This is the PageBar and the MobileAppNav and DesktopNav
 export const InvertedBar = (props: {
-  id?: string,
-  component: React.ElementType,
-  direction: 'horizontal' | 'vertical',
-  sx?: SxProps
-  children: React.ReactNode,
+  id?: string;
+  component: React.ElementType;
+  direction: 'horizontal' | 'vertical';
+  sx?: SxProps;
+  children: React.ReactNode;
 }) => {
-
-  // check for dark mode
   const theme = useTheme();
   const isDark = theme?.palette.mode === 'dark';
 
-
-  // memoize the Sx for stability, based on direction
-  const sx: SxProps = React.useMemo(() => (
-    props.direction === 'horizontal'
-      ? {
-        // minHeight: 'var(--Bar)',
-        flexDirection: 'row',
-        // overflow: 'hidden',
-        ...props.sx,
-      } : {
-        // minWidth: 'var(--Bar)',
-        flexDirection: 'column',
-        ...props.sx,
-      }
-  ), [props.direction, props.sx]);
-
+  const barWidth = React.useMemo(() => {
+    if (props.direction === 'horizontal') {
+      return { width: props.sx?.minWidth || 'var(--Bar)' };
+    } else {
+      return { height: props.sx?.minHeight || 'var(--Bar)' };
+    }
+  }, [props.direction, props.sx]);
 
   return (
     <StyledSheet
@@ -60,7 +45,8 @@ export const InvertedBar = (props: {
       component={props.component}
       variant={isDark ? 'soft' : 'solid'}
       invertedColors={!isDark ? true : undefined}
-      sx={sx}
+      {...barWidth}
+      sx={props.sx}
     >
       {props.children}
     </StyledSheet>
