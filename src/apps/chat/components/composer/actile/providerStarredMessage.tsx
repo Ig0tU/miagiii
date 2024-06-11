@@ -1,36 +1,35 @@
 import { conversationTitle, DConversationId, messageHasUserFlag, useChatStore } from '~/common/state/store-chats';
-
 import { ActileItem, ActileProvider } from './ActileProvider';
 
-
 export interface StarredMessageItem extends ActileItem {
-  conversationId: DConversationId,
-  messageId: string,
+  conversationId: DConversationId;
+  messageId: string;
 }
 
-export function providerStarredMessage(onMessageSeelect: (item: StarredMessageItem) => void): ActileProvider<StarredMessageItem> {
-  return {
+export function providerStarredMessage(onMessageSelect: (item: StarredMessageItem) => void): ActileProvider<StarredMessageItem> {
+  let conversations: any[] = [];
 
-    // only the literal '@' at start of chat, or ' @' at end of chat
+  return {
     fastCheckTriggerText: (trailingText: string) => trailingText === '@' || trailingText.endsWith(' @'),
 
-    // finds all the starred messages in all the conversations - this could be heavy
     fetchItems: async () => {
-      const { conversations } = useChatStore.getState();
+      const chatStore = useChatStore();
+      conversations = Array.from(chatStore.getState().conversations || []);
 
       const starredMessages: StarredMessageItem[] = [];
       conversations.forEach((conversation) => {
         conversation.messages.forEach((message) => {
-          messageHasUserFlag(message, 'starred') && starredMessages.push({
-            // data
-            conversationId: conversation.id,
-            messageId: message.id,
-            // looks
-            key: message.id,
-            label: conversationTitle(conversation) + ' - ' + message.text.slice(0, 32) + '...',
-            // description: message.text.slice(32, 100),
-            Icon: undefined,
-          } satisfies StarredMessageItem);
+          if (messageHasUserFlag(message, 'starred')) {
+            const { id: conversationId } = conversation;
+            const { id: messageId } = message;
+            starredMessages.push({
+              conversationId,
+              messageId,
+              key: messageId,
+              label: `${conversationTitle(conversation)} - ${message.text.slice(0, 32)}...`,
+              Icon: undefined,
+            });
+          }
         });
       });
 
@@ -41,6 +40,6 @@ export function providerStarredMessage(onMessageSeelect: (item: StarredMessageIt
       };
     },
 
-    onItemSelect: item => onMessageSeelect(item as StarredMessageItem),
+    onItemSelect: (item) => onMessageSelect(item as StarredMessageItem),
   };
 }
