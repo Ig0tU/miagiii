@@ -1,22 +1,16 @@
 import * as React from 'react';
-
 import { Box, Button, IconButton, Tooltip } from '@mui/joy';
 import ScreenshotMonitorIcon from '@mui/icons-material/ScreenshotMonitor';
-
 import { takeScreenCapture } from '~/common/util/screenCaptureUtils';
 
+type ButtonAttachScreenCaptureProps = {
+  isMobile?: boolean;
+  onAttachScreenCapture: (file: File) => void;
+};
 
-export const ButtonAttachScreenCaptureMemo = React.memo(ButtonAttachScreenCapture);
-
-function ButtonAttachScreenCapture(props: { isMobile?: boolean, onAttachScreenCapture: (file: File) => void }) {
-
-  // state
+const ButtonAttachScreenCapture: React.FC<ButtonAttachScreenCaptureProps> = ({ isMobile, onAttachScreenCapture }) => {
   const [capturing, setCapturing] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
-
-  // derived state
-  const { onAttachScreenCapture } = props;
-
 
   const handleTakeScreenCapture = React.useCallback(async () => {
     setError(null);
@@ -31,14 +25,16 @@ function ButtonAttachScreenCapture(props: { isMobile?: boolean, onAttachScreenCa
     setCapturing(false);
   }, [onAttachScreenCapture]);
 
-
-  return props.isMobile ? (
+  return isMobile ? (
     <IconButton onClick={handleTakeScreenCapture}>
       <ScreenshotMonitorIcon />
     </IconButton>
   ) : (
     <Tooltip
-      arrow disableInteractive variant='solid' placement='top-start'
+      arrow
+      disableInteractive
+      variant="solid"
+      placement="top-start"
       title={
         <Box sx={{ px: 1, py: 0.75, lineHeight: '1.5rem' }}>
           <b>Attach screen capture</b><br />
@@ -59,4 +55,6 @@ function ButtonAttachScreenCapture(props: { isMobile?: boolean, onAttachScreenCa
       </Button>
     </Tooltip>
   );
-}
+};
+
+export const MemoizedButtonAttachScreenCapture = React.memo(ButtonAttachScreenCapture);
