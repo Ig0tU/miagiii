@@ -6,17 +6,18 @@ import FormatPaintTwoToneIcon from '@mui/icons-material/FormatPaintTwoTone';
 
 import { animationShadowRingLimey } from '~/common/util/animUtils';
 
+export type DrawHeadingProps = {
+  section: number;
+  setSection: (section: number) => void;
+  showSections?: boolean;
+  onRemoveHeading?: () => void;
+  sx?: SxProps;
+  refineHeading?: string;
+  generateHeading?: string;
+};
 
-export function DrawHeading(props: {
-  section: number,
-  setSection: (section: number) => void,
-  showSections?: boolean,
-  onRemoveHeading?: () => void,
-  sx?: SxProps,
-}) {
-
+export function DrawHeading(props: DrawHeadingProps) {
   return (
-
     <Box onClick={props.onRemoveHeading} sx={{
       display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 3,
       ...props.sx,
@@ -37,13 +38,30 @@ export function DrawHeading(props: {
 
       {/* Messaging */}
       <Box>
-        <Typography level='title-lg'>
-          Draw with AI
+        <Typography
+          level='title-lg'
+          fontSize='2rem'
+          color='text.primary'
+          textAlign='left'
+          sx={{ mb: 1 }}
+        >
+          {props.generateHeading || 'Draw with AI'}
         </Typography>
-        <Typography level='title-sm' sx={{ mt: 1 }}>
+        <Typography
+          level='title-sm'
+          fontSize='1.25rem'
+          color='text.secondary'
+          textAlign='left'
+          sx={{ mt: 1 }}
+        >
           Turn your ideas into images
         </Typography>
-        <Chip variant='outlined' size='sm' sx={{ px: 1, py: 0.5, mt: 0.25, ml: -1, textWrap: 'wrap' }}>
+        <Chip
+          variant='outlined'
+          size='sm'
+          sx={{ px: 1, py: 0.5, mt: 0.25, ml: -1, textWrap: 'wrap', opacity: 0.75, cursor: 'not-allowed' }}
+          disabled
+        >
           Multi-models, AI assisted
         </Chip>
       </Box>
@@ -53,7 +71,7 @@ export function DrawHeading(props: {
         <Divider sx={{ flex: 1 }}>
 
           <ButtonGroup
-            // color='primary'
+            color='primary'
             size='sm'
             orientation='horizontal'
             sx={{
@@ -63,25 +81,29 @@ export function DrawHeading(props: {
               '& > button': {
                 minWidth: 104,
               },
+              ...props.sx,
             }}
           >
             <Button
               variant={props.section === 0 ? 'solid' : 'plain'}
               onClick={() => props.setSection(0)}
+              key='generate'
             >
-              Generate
+              {props.generateHeading || 'Generate'}
             </Button>
             <Button
-              disabled
+              disabled={props.section === 1}
               variant={props.section === 1 ? 'solid' : 'plain'}
               onClick={() => props.setSection(1)}
+              key='refine'
             >
-              Refine
+              {props.refineHeading || 'Refine'}
             </Button>
             {/*<Button*/}
-            {/*  disabled*/}
+            {/*  disabled={props.section === 2}*/}
             {/*  variant={props.section === 2 ? 'solid' : 'plain'}*/}
             {/*  onClick={() => props.setSection(1)}*/}
+            {/*  key='gallery'*/}
             {/*>*/}
             {/*  Gallery*/}
             {/*</Button>*/}
