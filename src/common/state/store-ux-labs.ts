@@ -1,57 +1,52 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-
-// UX Labs Experiments
-
-// UxLabsSettings.tsx contains the graduated settings, but the following are not stated:
-//  - Text Tools: dinamically shown where applicable
-//  - Chat Mode: Follow-Ups; moved to Chat Advanced UI
 interface UXLabsStore {
-
   labsAttachScreenCapture: boolean;
-  setLabsAttachScreenCapture: (labsAttachScreenCapture: boolean) => void;
+  setLabsAttachScreenCapture: (value: boolean) => void;
 
   labsCameraDesktop: boolean;
-  setLabsCameraDesktop: (labsCameraDesktop: boolean) => void;
+  setLabsCameraDesktop: (value: boolean) => void;
 
-  labsChatBarAlt: false | 'title',
-  setLabsChatBarAlt: (labsChatBarAlt: false | 'title') => void;
+  labsChatBarAlt: false | 'title';
+  setLabsChatBarAlt: (value: false | 'title') => void;
 
   labsHighPerformance: boolean;
-  setLabsHighPerformance: (labsHighPerformance: boolean) => void;
+  setLabsHighPerformance: (value: boolean) => void;
 
   labsShowCost: boolean;
-  setLabsShowCost: (labsShowCost: boolean) => void;
-
+  setLabsShowCost: (value: boolean) => void;
 }
 
-export const useUXLabsStore = create<UXLabsStore>()(
+const useUXLabsStore = create<UXLabsStore>()(
   persist(
     (set) => ({
-
       labsAttachScreenCapture: false,
-      setLabsAttachScreenCapture: (labsAttachScreenCapture: boolean) => set({ labsAttachScreenCapture }),
+      setLabsAttachScreenCapture: (value: boolean) => set({ labsAttachScreenCapture: value }),
 
       labsCameraDesktop: false,
-      setLabsCameraDesktop: (labsCameraDesktop: boolean) => set({ labsCameraDesktop }),
+      setLabsCameraDesktop: (value: boolean) => set({ labsCameraDesktop: value }),
 
       labsChatBarAlt: false,
-      setLabsChatBarAlt: (labsChatBarAlt: false | 'title') => set({ labsChatBarAlt }),
+      setLabsChatBarAlt: (value: false | 'title') => set({ labsChatBarAlt: value }),
 
       labsHighPerformance: false,
-      setLabsHighPerformance: (labsHighPerformance: boolean) => set({ labsHighPerformance }),
+      setLabsHighPerformance: (value: boolean) => set({ labsHighPerformance: value }),
 
-      labsShowCost: true, // release 1.16.0 with this enabled by default
-      setLabsShowCost: (labsShowCost: boolean) => set({ labsShowCost }),
-
+      labsShowCost: true,
+      setLabsShowCost: (value: boolean) => set({ labsShowCost: value }),
     }),
     {
       name: 'app-ux-labs',
+      // only allow these properties to be persisted
+      allowList: ['labsAttachScreenCapture', 'labsCameraDesktop', 'labsChatBarAlt', 'labsHighPerformance', 'labsShowCost'],
     },
-  ),
+  )
 );
 
 export function getUXLabsHighPerformance() {
   return useUXLabsStore.getState().labsHighPerformance;
 }
+
+export type UseUXLabsStore = typeof useUXLabsStore;
+export type GetUXLabsHighPerformance = typeof getUXLabsHighPerformance;
