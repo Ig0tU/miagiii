@@ -1,21 +1,20 @@
 import { Brand } from '../app.config';
 
-// assume these won't change during the application lifetime
+// Assume these won't change during the application lifetime
 export const isBrowser = typeof window !== 'undefined';
 
-// this sort of detection is brittle, but we use it for very optional features
+// This sort of detection is brittle, but we use it for very optional features
 const safeUA = isBrowser ? window.navigator?.userAgent || '' : '';
 export const isIPhoneUser = /iPhone|iPod/.test(safeUA);
 export const isMacUser = /Macintosh|MacIntel|MacPPC|Mac68K|iPad/.test(safeUA);
 export const isChromeDesktop = safeUA.includes('Chrome') && !safeUA.includes('Mobile');
 export const isFirefox = safeUA.includes('Firefox');
 
-// frontend language
-const browserLang = isBrowser ? window.navigator.language : '';
-export const browserLangOrUS = browserLang || 'en-US';
-export const browserLangNotUS = browserLangOrUS !== 'en-US';
+// Frontend language
+export const browserLang = isBrowser ? (window.navigator.language || 'en-US') : 'en-US';
+export const browserLangNotUS = browserLang !== 'en-US';
 
-// deployment environment
+// Deployment environment
 export const isVercelFromBackendOrSSR = !!process.env.VERCEL_ENV;
 export const isVercelFromFrontend = !!process.env.NEXT_PUBLIC_VERCEL_URL;
 
@@ -48,9 +47,8 @@ export function clientUtmSource(campaign?: string): string {
   const host = clientHostName();
   if (!host)
     return '';
-  return '?utm_source=' + host + '&utm_medium=' + Brand.Title.Base.toLowerCase() + (campaign ? `&utm_campaign=${campaign}` : '');
+  return `?utm_source=${host}&utm_medium=${Brand.Title.Base.toLowerCase()}${campaign ? `&utm_campaign=${campaign}` : ''}`;
 }
-
 
 /**
  * Schedules a callback to be executed during the browser's idle periods or after a specified timeout.
