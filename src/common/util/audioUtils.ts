@@ -1,47 +1,61 @@
-import * as React from 'react';
+import { useEffect, useRef } from 'react';
 
-export function playSoundUrl(url: string) {
-  const audio = new Audio(url);
-  audio.play().catch(error => console.error('Error playing audio:', url, error));
+interface AudioPlayerProps {
+  url: string | null;
+  firstDelay?: number;
+  repeatMs?: number;
 }
 
-export async function playSoundBuffer(audioBuffer: ArrayBuffer) {
-  const audioContext = new AudioContext();
-  const bufferSource = audioContext.createBufferSource();
-  bufferSource.buffer = await audioContext.decodeAudioData(audioBuffer);
-  bufferSource.connect(audioContext.destination);
-  bufferSource.start();
-}
+export function usePlaySoundUrl({ url, firstDelay = 0, repeatMs = 0 }: AudioPlayerProps) {
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
+  useEffect(() => {
+    if (!url) {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.src = '';
+      }
+      return;
+    }
 
-/**
- * Plays a sound from a URL, and optionally repeats it after a delay.
- * @param url The URL of the sound to play.
- * @param firstDelay The delay before the first play, in milliseconds.
- * @param repeatMs The delay between each repeat, in milliseconds. If 0, the sound will only play once.
- */
-export function usePlaySoundUrl(url: string | null, firstDelay: number = 0, repeatMs: number = 0) {
-  React.useEffect(() => {
-    if (!url) return;
-
-    let timer2: any = null;
-
-    const playFirstTime = () => {
-      const playAudio = () => playSoundUrl(url);
-      playAudio();
-      timer2 = repeatMs > 0 ? setInterval(playAudio, repeatMs) : null;
+    const playAudio = () => {
+      if (audioRef.current) {
+        audioRef.current.play().catch((error) => {
+          console.error('Error playing audio:', url, error);
+        });
+      }
     };
 
-    const timer1 = setTimeout(playFirstTime, firstDelay);
+    if (audioRef.current) {
+      audioRef.current.src = url;
+    } else {
+      audioRef.current = new Audio(url);
+    }
+
+    clearTimeout(timerRef.current as NodeJS.Timeout);
+
+    if (firstDelay > 0) {
+      timerRef.current = setTimeout(playAudio, firstDelay);
+    } else {
+      playAudio();
+    }
+
+    if (repeatMs > 0) {
+      timerRef.current = setInterval(playAudio, repeatMs);
+    }
 
     return () => {
-      clearTimeout(timer1);
-      if (timer2)
-        clearInterval(timer2);
+      clearTimeout(timerRef.current as NodeJS.Timeout);
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.src = '';
+      }
     };
-  }, [firstDelay, repeatMs, url]);
-}
+  }, [url, firstDelay, repeatMs]);
 
+  return audioRef;
+}
 
 /* Note: the following function was an earlier implementation of AudioLivePlayer, but it didn't work well.
 
