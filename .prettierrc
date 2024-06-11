@@ -1,7 +1,7 @@
 {
-  "singleAttributePerLine": false,
-  "singleQuote": true,
-  "trailingComma": "all",
-  "endOfLine": "lf",
-  "printWidth": 160
+  "single_attribute_per_line": true,
+  "single_quote": true,
+  "trailing_comma": "es5",
+  "end_of_line": "lf",
+  "print_width": 120
 }
