@@ -1,17 +1,13 @@
 import { LocalAIIcon } from '~/common/components/icons/vendors/LocalAIIcon';
-
 import type { IModelVendor } from '../IModelVendor';
 import type { OpenAIAccessSchema } from '../../server/openai/openai.router';
-
 import { LLMOptionsOpenAI, ModelVendorOpenAI } from '../openai/openai.vendor';
 import { OpenAILLMOptions } from '../openai/OpenAILLMOptions';
-
 import { LocalAISourceSetup } from './LocalAISourceSetup';
 
-
 export interface SourceSetupLocalAI {
-  localAIHost: string;  // use OpenAI-compatible non-default hosts (full origin path)
-  localAIKey: string;   // use OpenAI-compatible API keys
+  localAIHost: string;
+  localAIKey: string;
 }
 
 export const ModelVendorLocalAI: IModelVendor<SourceSetupLocalAI, OpenAIAccessSchema, LLMOptionsOpenAI> = {
@@ -21,17 +17,11 @@ export const ModelVendorLocalAI: IModelVendor<SourceSetupLocalAI, OpenAIAccessSc
   location: 'local',
   instanceLimit: 4,
   hasBackendCapKey: 'hasLlmLocalAIHost',
-  hasBackendCapFn: (backendCapabilities) => {
-    // this is to show the green mark on the vendor icon in the setup screen
-    return backendCapabilities.hasLlmLocalAIHost || backendCapabilities.hasLlmLocalAIKey;
-  },
-
-  // components
+  hasBackendCapFn: (backendCapabilities) =>
+    backendCapabilities.hasLlmLocalAIHost || backendCapabilities.hasLlmLocalAIKey,
   Icon: LocalAIIcon,
   SourceSetupComponent: LocalAISourceSetup,
   LLMOptionsComponent: OpenAILLMOptions,
-
-  // functions
   initializeSetup: () => ({
     localAIHost: '',
     localAIKey: '',
@@ -44,9 +34,24 @@ export const ModelVendorLocalAI: IModelVendor<SourceSetupLocalAI, OpenAIAccessSc
     heliKey: '',
     moderationCheck: false,
   }),
-
-  // OpenAI transport ('localai' dialect in 'access')
   rpcUpdateModelsOrThrow: ModelVendorOpenAI.rpcUpdateModelsOrThrow,
   rpcChatGenerateOrThrow: ModelVendorOpenAI.rpcChatGenerateOrThrow,
   streamingChatGenerateOrThrow: ModelVendorOpenAI.streamingChatGenerateOrThrow,
+};
+
+// Add this helper function to handle OpenAI-compatible hosts and keys
+export const isOpenAICompatible = (host: string, apiKey: string): boolean => {
+  // Implement your logic to check if the host and API key are OpenAI-compatible
+};
+
+// Add this type to make the intent clearer
+type LocalAIBackendCapabilities = {
+  hasLlmLocalAIHost: boolean;
+  hasLlmLocalAIKey: boolean;
+};
+
+// Initialize the LocalAIBackendCapabilities
+export const localAIBackendCapabilities: LocalAIBackendCapabilities = {
+  hasLlmLocalAIHost: false,
+  hasLlmLocalAIKey: false,
 };
