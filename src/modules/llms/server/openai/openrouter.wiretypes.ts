@@ -1,30 +1,24 @@
-import { z } from 'zod';
-
+import { z, ZodTypeAny } from 'zod';
 
 export const wireOpenrouterModelsListOutputSchema = z.object({
   id: z.string(),
   name: z.string(),
   description: z.string(),
-  pricing: z.object({
-    prompt: z.string(),
-    completion: z.string(),
-    image: z.string(),
-    request: z.string(),
-  }),
-  context_length: z.number(),
+  pricing: z.record(z.string(), z.string()),
+  contextLength: z.number(),
   architecture: z.object({
-    modality: z.string(), // z.enum(['text', 'multimodal']),
-    tokenizer: z.string(), // e.g. 'Mistral'
-    instruct_type: z.string().nullable(),
+    modality: z.preprocess((val) => val?.toLowerCase(), z.string()).optional(), // optional and case-insensitive
+    tokenizer: z.string(),
+    instructType: z.string().optional(),
   }),
-  top_provider: z.object({
-    max_completion_tokens: z.number().nullable(),
-    is_moderated: z.boolean(), // false means that the user will need to do moderation, and likely this has lower latency
+  topProvider: z.object({
+    maxCompletionTokens: z.number().optional(),
+    isModerated: z.boolean(),
   }),
-
-  // when logged in
-  per_request_limits: z.object({
-    prompt_tokens: z.string(),
-    completion_tokens: z.string(),
-  }).nullable(), // null on 'openrouter/auto'
+  perRequestLimits: z.object({
+    promptTokens: z.string(),
+    completionTokens: z.string(),
+  }).optional(), // optional
 });
+
+export type WireOpenrouterModelsListOutput = z.infer<typeof wireOpenrouterModelsListOutputSchema>;
