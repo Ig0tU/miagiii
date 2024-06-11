@@ -1,36 +1,65 @@
 import * as React from 'react';
 
-import { Box, Button, IconButton, Tooltip } from '@mui/joy';
-import { SxProps } from '@mui/joy/styles/types';
-import CallIcon from '@mui/icons-material/Call';
+import { Box, Button, IconButton, SxProps, Tooltip } from '@mui/joy';
+import { CallIcon } from '@mui/icons-material';
 
+type CallIconButtonProps = {
+  isMobile: boolean;
+  disabled?: boolean;
+  onClick: () => void;
+  tooltipTitle?: string;
+  iconSx?: SxProps;
+};
 
-const callConversationLegend =
-  <Box sx={{ px: 1, py: 0.75, lineHeight: '1.5rem' }}>
-    Quick call regarding this chat
-  </Box>;
-
-const mobileSx: SxProps = {
-  mr: { xs: 1, md: 2 },
-} as const;
-
-const desktopSx: SxProps = {
-  '--Button-gap': '1rem',
-} as const;
-
-
-export const ButtonCallMemo = React.memo(ButtonCall);
-
-function ButtonCall(props: { isMobile?: boolean, disabled?: boolean, onClick: () => void }) {
-  return props.isMobile ? (
-    <IconButton variant='soft' color='primary' disabled={props.disabled} onClick={props.onClick} sx={mobileSx}>
+const CallIconButton = React.memo(({ isMobile, disabled, onClick, tooltipTitle, iconSx }: CallIconButtonProps) => {
+  const buttonContent = isMobile ? (
+    <IconButton variant='soft' color='primary' disabled={disabled} onClick={onClick} sx={iconSx}>
       <CallIcon />
     </IconButton>
   ) : (
-    <Tooltip disableInteractive variant='solid' arrow placement='right' title={callConversationLegend}>
-      <Button variant='soft' color='primary' disabled={props.disabled} onClick={props.onClick} endDecorator={<CallIcon />} sx={desktopSx}>
-        Call
-      </Button>
-    </Tooltip>
+    <CallIcon sx={iconSx} />
+  );
+
+  if (tooltipTitle) {
+    return (
+      <Tooltip disableInteractive variant='solid' arrow placement='right' title={tooltipTitle}>
+        {buttonContent}
+      </Tooltip>
+    );
+  }
+
+  return buttonContent;
+});
+
+const mobileSx: SxProps = {
+  mr: { xs: 1, md: 2 },
+};
+
+const desktopSx: SxProps = {
+  '--Button-gap': '1rem',
+};
+
+type ButtonCallProps = {
+  isMobile: boolean;
+  disabled?: boolean;
+  onClick: () => void;
+};
+
+export const ButtonCallMemo = React.memo(ButtonCall);
+
+function ButtonCall(props: ButtonCallProps) {
+  const { isMobile, disabled, onClick } = props;
+
+  const tooltipTitle = isMobile ? undefined : 'Quick call regarding this chat';
+  const iconSx = isMobile ? undefined : { mr: 1 };
+
+  return (
+    <CallIconButton
+      isMobile={isMobile}
+      disabled={disabled}
+      onClick={onClick}
+      tooltipTitle={tooltipTitle}
+      iconSx={iconSx}
+    />
   );
 }
