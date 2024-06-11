@@ -1,23 +1,19 @@
 import * as React from 'react';
-
-import { Button } from '@mui/joy';
+import { Button, Link as MuiLink, Typography } from '@mui/material';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
-
+import { useRecoilState, useRecoilValue } from 'recoil';
 import { getChatShowSystemMessages } from '../../../apps/chat/store-app-chat';
-
 import { Brand } from '~/common/app.config';
 import { ConfirmationModal } from '~/common/components/ConfirmationModal';
 import { DConversationId, getConversation } from '~/common/state/store-chats';
 import { Link } from '~/common/components/Link';
 import { apiAsyncNode } from '~/common/util/trpc.client';
 import { isBrowser } from '~/common/util/pwaUtils';
-
 import type { PublishedSchema } from '../server/pastegg';
 import { PublishDetails } from './PublishDetails';
 import { conversationToMarkdown } from '../trade.client';
+import { publishToState } from '../atoms';
 
-
-/// Returns a pretty link to the current page, for promo
 function linkToOrigin() {
   let origin = isBrowser ? window.location.href : '';
   if (!origin || origin.includes('//localhost'))
@@ -28,30 +24,22 @@ function linkToOrigin() {
   return origin;
 }
 
-
-export function PublishExport(props: {
-  conversationId: DConversationId | null;
-  onClose: () => void;
-}) {
-
-  // local state
-  const [publishConversationId, setPublishConversationId] = React.useState<DConversationId | null>(null);
+export function PublishExport() {
+  const [publishConversationId, setPublishConversationId] = useRecoilState(publishToState);
   const [publishUploading, setPublishUploading] = React.useState(false);
   const [publishResponse, setPublishResponse] = React.useState<PublishedSchema | null>(null);
-
+  const conversationId = useRecoilValue(publishToState);
+  const conversation = getConversation(conversationId);
+  const showSystemMessages = getChatShowSystemMessages();
+  const markdownContent = conversationToMarkdown(conversation, !showSystemMessages, false);
 
   const handlePublishConversation = () => setPublishConversationId(props.conversationId);
 
   const handlePublishConfirmed = async () => {
-    if (!publishConversationId) return;
-
-    const conversation = getConversation(publishConversationId);
-    setPublishConversationId(null);
-    if (!conversation) return;
+    if (!conversationId) return;
 
     setPublishUploading(true);
-    const showSystemMessages = getChatShowSystemMessages();
-    const markdownContent = conversationToMarkdown(conversation, !showSystemMessages, false);
+
     try {
       const paste = await apiAsyncNode.trade.publishTo.mutate({
         to: 'paste.gg',
@@ -65,47 +53,49 @@ export function PublishExport(props: {
       alert(`Failed to publish conversation: ${error?.message ?? error?.toString() ?? 'unknown error'}`);
       setPublishResponse(null);
     }
+
     setPublishUploading(false);
   };
 
   const handlePublishResponseClosed = () => {
     setPublishResponse(null);
-    props.onClose();
   };
 
+  const hasConversation = !!conversationId;
 
-  const hasConversation = !!props.conversationId;
+  return (
+    <>
+      <Button
+        variant='soft' disabled={!hasConversation || publishUploading}
+        loading={publishUploading}
+        color={publishResponse ? 'success' : 'primary'}
+        endDecorator={<ExitToAppIcon />}
+        sx={{ minWidth: 240, justifyContent: 'space-between' }}
+        onClick={handlePublishConversation}
+      >
+        Share Copy · Paste.gg
+      </Button>
 
+      {/* [publish] confirmation */}
+      {conversationId && (
+        <ConfirmationModal
+          open onClose={() => setPublishConversationId(null)} onPositive={handlePublishConfirmed}
+          confirmationText={
+            <Typography variant='body1'>
+              Share your conversation anonymously on <MuiLink href='https://paste.gg' target='_blank' color='inherit'>paste.gg</MuiLink>?
+              It will be unlisted and available to share and read for 30 days. Keep in mind, deletion may not be possible.
+              Do you wish to continue?
+            </Typography>
+          }
+          positiveActionText={'Understood, Upload to Paste.gg'}
+        />
+      )}
 
-  return <>
+      {/* [publish] response */}
+      {!!publishResponse && (
+        <PublishDetails open onClose={handlePublishResponseClosed} response={publishResponse} />
+      )}
 
-    <Button
-      variant='soft' disabled={!hasConversation || publishUploading}
-      loading={publishUploading}
-      color={publishResponse ? 'success' : 'primary'}
-      endDecorator={<ExitToAppIcon />}
-      sx={{ minWidth: 240, justifyContent: 'space-between' }}
-      onClick={handlePublishConversation}
-    >
-      Share Copy · Paste.gg
-    </Button>
-
-    {/* [publish] confirmation */}
-    {publishConversationId && (
-      <ConfirmationModal
-        open onClose={() => setPublishConversationId(null)} onPositive={handlePublishConfirmed}
-        confirmationText={<>
-          Share your conversation anonymously on <Link href='https://paste.gg' target='_blank'>paste.gg</Link>?
-          It will be unlisted and available to share and read for 30 days. Keep in mind, deletion may not be possible.
-          Do you wish to continue?
-        </>} positiveActionText={'Understood, Upload to Paste.gg'}
-      />
-    )}
-
-    {/* [publish] response */}
-    {!!publishResponse && (
-      <PublishDetails open onClose={handlePublishResponseClosed} response={publishResponse} />
-    )}
-
-  </>;
+    </>
+  );
 }
