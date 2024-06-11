@@ -1,36 +1,23 @@
 import * as React from 'react';
-
 import { Container, Sheet } from '@mui/joy';
-
-import type { DConversationId } from '~/common/state/store-chats';
 import { useRouterQuery } from '~/common/app.routes';
-
-import { CallWizard } from './CallWizard';
-import { Contacts } from './Contacts';
-import { Telephone } from './Telephone';
+import { DConversationId } from '~/common/state/store-chats';
 import { useAppCallStore } from './state/store-app-call';
+import { CallWizard, Contacts, Telephone } from './components';
 
-
-/**
- * Used to define the intent of the call from other apps (via query params) or
- * from the contacts list (via the 'call' button).
- */
 export interface AppCallIntent {
   conversationId: DConversationId | null;
   personaId: string;
   backTo: 'app-chat' | 'app-call-contacts';
 }
 
-
 export function AppCall() {
-
   // state
   const [callIntent, setCallIntent] = React.useState<AppCallIntent | null>(null);
 
   // external state
   const grayUI = useAppCallStore(state => state.grayUI);
   const query = useRouterQuery<Partial<AppCallIntent>>();
-
 
   // [effect] set intent from the query parameters
   React.useEffect(() => {
@@ -42,7 +29,6 @@ export function AppCall() {
       });
     }
   }, [query.backTo, query.conversationId, query.personaId]);
-
 
   const hasIntent = !!callIntent && !!callIntent.personaId;
 
@@ -72,8 +58,13 @@ export function AppCall() {
         {!hasIntent ? (
           <Contacts setCallIntent={setCallIntent} />
         ) : (
-          <CallWizard conversationId={callIntent.conversationId}>
-            <Telephone callIntent={callIntent} backToContacts={() => setCallIntent(null)} />
+          <CallWizard conversationId={callIntent?.conversationId}>
+            {callIntent?.conversationId && (
+              <Telephone
+                callIntent={callIntent}
+                backToContacts={() => setCallIntent(null)}
+              />
+            )}
           </CallWizard>
         )}
 
