@@ -1,42 +1,34 @@
 import * as React from 'react';
-
 import type { SxProps } from '@mui/joy/styles/types';
 import { Box, Modal, ModalClose } from '@mui/joy';
-
+import { ScrollToBottom } from '~/common/scroll-to-bottom/ScrollToBottom';
 import { BeamStoreApi, useBeamStore } from '~/modules/beam/store-beam.hooks';
 import { BeamView } from '~/modules/beam/BeamView';
 
-import { ScrollToBottom } from '~/common/scroll-to-bottom/ScrollToBottom';
+type ChatBeamWrapperProps = {
+  beamStore: BeamStoreApi;
+  isMobile: boolean;
+  inlineSx?: SxProps;
+}
 
-
-/*const overlaySx: SxProps = {
-  position: 'absolute',
-  inset: 0,
-  zIndex: themeZIndexBeamView, // stay on top of Message > Chips (:1), and Overlays (:2) - note: Desktop Drawer (:26)
-}*/
-
-
-export function ChatBeamWrapper(props: {
-  beamStore: BeamStoreApi,
-  isMobile: boolean,
-  inlineSx?: SxProps,
-}) {
-
+export function ChatBeamWrapper({ beamStore, isMobile, inlineSx }: ChatBeamWrapperProps) {
   // state
-  const isMaximized = useBeamStore(props.beamStore, state => state.isMaximized);
+  const { isMaximized } = useBeamStore(beamStore, state => ({
+    isMaximized: state.isMaximized,
+  }));
 
   const handleUnMaximize = React.useCallback(() => {
-    props.beamStore.getState().setIsMaximized(false);
-  }, [props.beamStore]);
+    beamStore.getState().setIsMaximized(false);
+  }, [beamStore]);
 
   // memo the beamview
   const beamView = React.useMemo(() => (
     <BeamView
-      beamStore={props.beamStore}
-      isMobile={props.isMobile}
+      beamStore={beamStore}
+      isMobile={isMobile}
       showExplainer
     />
-  ), [props.beamStore, props.isMobile]);
+  ), [beamStore, isMobile]);
 
   return isMaximized ? (
     <Modal open onClose={handleUnMaximize}>
@@ -52,7 +44,7 @@ export function ChatBeamWrapper(props: {
       </Box>
     </Modal>
   ) : (
-    <Box sx={props.inlineSx}>
+    <Box sx={inlineSx}>
       {beamView}
     </Box>
   );
