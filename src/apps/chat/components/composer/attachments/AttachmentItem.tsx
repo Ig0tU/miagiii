@@ -1,6 +1,13 @@
 import * as React from 'react';
 
-import { Box, Button, CircularProgress, ColorPaletteProp, Sheet, Typography } from '@mui/joy';
+import {
+  Box,
+  Button,
+  CircularProgress,
+  ColorPaletteProp,
+  Sheet,
+  Typography,
+} from '@mui/joy';
 import AbcIcon from '@mui/icons-material/Abc';
 import CodeIcon from '@mui/icons-material/Code';
 import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined';
@@ -14,32 +21,56 @@ import WarningRoundedIcon from '@mui/icons-material/WarningRounded';
 import { GoodTooltip } from '~/common/components/GoodTooltip';
 import { ellipsizeFront, ellipsizeMiddle } from '~/common/util/textUtils';
 
-import type { Attachment, AttachmentConverterType, AttachmentId } from './store-attachments';
-import type { LLMAttachment } from './useLLMAttachments';
+import { Attachment, AttachmentConverterType, AttachmentId } from './store-attachments';
+import { LLMAttachment } from './useLLMAttachments';
 
-
-// default attachment width
 const ATTACHMENT_MIN_STYLE = {
   height: '100%',
   minHeight: '40px',
   minWidth: '64px',
 };
 
+const DEFAULT_ELLIPSIZED_LABEL_LENGTH = 30;
 
-const ellipsizeLabel = (label?: string) => {
-  if (!label)
-    return '';
-  return ellipsizeMiddle((label || '')
-    .replace(/https?:\/\/(?:www\.)?/, ''), 30)
-    .replace(/\/$/, '')
-    .replace('…', '…\n…');
+const converterTypeToIconMap: { [key in AttachmentConverterType]: React.ComponentType<any> } = {
+  'text': TextFieldsIcon,
+  'rich-text': CodeIcon,
+  'rich-text-table': PivotTableChartIcon,
+  'pdf-text': PictureAsPdfIcon,
+  'pdf-images': PictureAsPdfIcon,
+  'image': ImageOutlinedIcon,
+  'image-ocr': AbcIcon,
+  'ego-message-md': TelegramIcon,
+  'unhandled': TextureIcon,
 };
 
+const getAttachmentIcon = (attachment: Attachment) => {
+  const converter = attachment.converterIdx !== null ? attachment.converters[attachment.converterIdx] ?? null : null;
+  if (converter && converter.id) {
+    const Icon = converterTypeToIconMap[converter.id] ?? null;
+    if (Icon)
+      return <Icon sx={{ width: 24, height: 24 }} />;
+  }
+  return null;
+};
 
-/**
- * Displayed while a source is loading
- */
-const LoadingIndicator = React.forwardRef((props: { label: string }, _ref) =>
+const getAttachmentLabelText = (attachment: Attachment): string => {
+  const converter = attachment.converterIdx !== null ? attachment.converters[attachment.converterIdx] ?? null : null;
+  if (converter && attachment.label === 'Rich Text') {
+    if (converter.id === 'rich-text-table')
+      return 'Rich Table';
+    if (converter.id === 'rich-text')
+      return 'Rich HTML';
+  }
+  return ellipsizeFront(attachment.label, 24);
+};
+
+const getAttachmentLabel = (attachment: Attachment) => {
+  const label = attachment.source.media !== 'text' ? `${attachment.source.media}: ` : '';
+  return ellipsizeMiddle(`${label}${attachment.label}`, DEFAULT_ELLIPSIZED_LABEL_LENGTH);
+};
+
+const LoadingIndicator = React.forwardRef((props: { label: string }, ref) =>
   <Sheet
     color='success' variant='soft'
     sx={{
@@ -55,104 +86,56 @@ const LoadingIndicator = React.forwardRef((props: { label: string }, _ref) =>
   >
     <CircularProgress color='success' size='sm' />
     <Typography level='title-sm' sx={{ whiteSpace: 'nowrap' }}>
-      {ellipsizeLabel(props.label)}
+      {getAttachmentLabel(props.label)}
     </Typography>
   </Sheet>,
 );
 LoadingIndicator.displayName = 'LoadingIndicator';
 
-
 const InputErrorIndicator = () =>
   <WarningRoundedIcon sx={{ color: 'danger.solidBg' }} />;
 
 
-const converterTypeToIconMap: { [key in AttachmentConverterType]: React.ComponentType<any> } = {
-  'text': TextFieldsIcon,
-  'rich-text': CodeIcon,
-  'rich-text-table': PivotTableChartIcon,
-  'pdf-text': PictureAsPdfIcon,
-  'pdf-images': PictureAsPdfIcon,
-  'image': ImageOutlinedIcon,
-  'image-ocr': AbcIcon,
-  'ego-message-md': TelegramIcon,
-  'unhandled': TextureIcon,
-};
-
-function attachmentConverterIcon(attachment: Attachment) {
-  const converter = attachment.converterIdx !== null ? attachment.converters[attachment.converterIdx] ?? null : null;
-  if (converter && converter.id) {
-    const Icon = converterTypeToIconMap[converter.id] ?? null;
-    if (Icon)
-      return <Icon sx={{ width: 24, height: 24 }} />;
-  }
-  return null;
+interface AttachmentItemProps {
+  llmAttachment: LLMAttachment;
+  menuShown: boolean;
+  onItemMenuToggle: (attachmentId: AttachmentId, anchor: HTMLAnchorElement) => void;
 }
 
-function attachmentLabelText(attachment: Attachment): string {
-  const converter = attachment.converterIdx !== null ? attachment.converters[attachment.converterIdx] ?? null : null;
-  if (converter && attachment.label === 'Rich Text') {
-    if (converter.id === 'rich-text-table')
-      return 'Rich Table';
-    if (converter.id === 'rich-text')
-      return 'Rich HTML';
-  }
-  return ellipsizeFront(attachment.label, 24);
-}
-
-
-export function AttachmentItem(props: {
-  llmAttachment: LLMAttachment,
-  menuShown: boolean,
-  onItemMenuToggle: (attachmentId: AttachmentId, anchor: HTMLAnchorElement) => void,
-}) {
-
-  // derived state
-
-  const { onItemMenuToggle } = props;
-
+export function AttachmentItem(props: AttachmentItemProps) {
   const {
-    attachment,
-    isUnconvertible,
-    isOutputMissing,
-    isOutputAttachable,
-  } = props.llmAttachment;
+    llmAttachment: {
+      attachment,
+      isUnconvertible,
+      isOutputMissing,
+      isOutputAttachable,
+      inputError,
+      inputLoading,
+      outputsConverting,
+    },
+    menuShown,
+    onItemMenuToggle,
+  } = props;
 
-  const {
-    inputError,
-    inputLoading: isInputLoading,
-    outputsConverting: isOutputLoading,
-  } = attachment;
-
-  const isInputError = !!inputError;
+  const isInputError = Boolean(inputError);
   const showWarning = isUnconvertible || isOutputMissing || !isOutputAttachable;
 
-
-  const handleToggleMenu = React.useCallback((event: React.MouseEvent<HTMLAnchorElement>) => {
-    event.preventDefault(); // added for the Right mouse click (to prevent the menu)
+  const handleToggleMenu = React.useCallback((event) => {
+    event.preventDefault();
     onItemMenuToggle(attachment.id, event.currentTarget);
   }, [attachment, onItemMenuToggle]);
 
-
-  // compose tooltip
-  let tooltip: string | null = '';
-  if (attachment.source.media !== 'text')
-    tooltip += attachment.source.media + ': ';
-  tooltip += attachment.label;
-  // if (hasInput)
-  //   tooltip += `\n(${aInput.mimeType}: ${aInput.dataSize.toLocaleString()} bytes)`;
-  // if (aOutputs && aOutputs.length >= 1)
-  //   tooltip += `\n\n${JSON.stringify(aOutputs)}`;
-
-  // choose variants and color
+  let tooltip = getAttachmentLabel(attachment);
   let color: ColorPaletteProp;
-  let variant: 'soft' | 'outlined' | 'contained' = 'soft';
-  if (isInputLoading || isOutputLoading) {
+  let buttonVariant: 'soft' | 'outlined' | 'contained' = 'soft';
+
+  if (inputLoading || outputsConverting) {
     color = 'success';
   } else if (isInputError) {
-    tooltip = `Issue loading the attachment: ${attachment.inputError}\n\n${tooltip}`;
+    tooltip = `Issue loading the attachment: ${inputError}\n\n${tooltip}`;
     color = 'danger';
   } else if (showWarning) {
-    tooltip = props.menuShown
+    tooltip = menuShown
       ? null
       : isUnconvertible
         ? `Attachments of type '${attachment.input?.mimeType}' are not supported yet. You can open a feature request on GitHub.\n\n${tooltip}`
@@ -161,50 +144,49 @@ export function AttachmentItem(props: {
   } else {
     // all good
     tooltip = null;
-    color = /*props.menuShown ? 'primary' :*/ 'neutral';
-    variant = 'outlined';
+    color = /*menuShown ? 'primary' :*/ 'neutral';
+    buttonVariant = 'outlined';
   }
 
-
-  return <Box>
-
-    <GoodTooltip
-      title={tooltip}
-      isError={isInputError}
-      isWarning={showWarning}
-      sx={{ p: 1, whiteSpace: 'break-spaces' }}
-    >
-      {isInputLoading
-        ? <LoadingIndicator label={attachment.label} />
-        : (
-          <Button
-            size='sm'
-            variant={variant} color={color}
-            onClick={handleToggleMenu}
-            onContextMenu={handleToggleMenu}
-            sx={{
-              backgroundColor: props.menuShown ? `${color}.softActiveBg` : variant === 'outlined' ? 'background.popup' : undefined,
-              border: variant === 'soft' ? '1px solid' : undefined,
-              borderColor: variant === 'soft' ? `${color}.solidBg` : undefined,
-              borderRadius: 'sm',
-              ...ATTACHMENT_MIN_STYLE,
-              px: 1, py: 0.5,
-              display: 'flex', flexDirection: 'row', gap: 1,
-            }}
-          >
-            {isInputError
-              ? <InputErrorIndicator />
-              : <>
-                {attachmentConverterIcon(attachment)}
-                {isOutputLoading
-                  ? <>Converting <CircularProgress color='success' size='sm' /></>
-                  : <Typography level='title-sm' sx={{ whiteSpace: 'nowrap' }}>
-                    {attachmentLabelText(attachment)}
-                  </Typography>}
-              </>}
-          </Button>
-        )}
-    </GoodTooltip>
-
-  </Box>;
+  return (
+    <Box>
+      <GoodTooltip
+        title={tooltip}
+        isError={isInputError}
+        isWarning={showWarning}
+        sx={{ p: 1, whiteSpace: 'break-spaces' }}
+      >
+        {inputLoading
+          ? <LoadingIndicator label={attachment} />
+          : (
+            <Button
+              size='sm'
+              variant={buttonVariant} color={color}
+              onClick={handleToggleMenu}
+              onContextMenu={handleToggleMenu}
+              sx={{
+                backgroundColor: menuShown ? `${color}.softActiveBg` : buttonVariant === 'outlined' ? 'background.popup' : undefined,
+                border: buttonVariant === 'soft' ? '1px solid' : undefined,
+                borderColor: buttonVariant === 'soft' ? `${color}.solidBg` : undefined,
+                borderRadius: 'sm',
+                ...ATTACHMENT_MIN_STYLE,
+                px: 1, py: 0.5,
+                display: 'flex', flexDirection: 'row', gap: 1,
+              }}
+            >
+              {isInputError
+                ? <InputErrorIndicator />
+                : <>
+                  {getAttachmentIcon(attachment)}
+                  {outputsConverting
+                    ? <>Converting <CircularProgress color='success' size='sm' /></>
+                    : <Typography level='title-sm' sx={{ whiteSpace: 'nowrap' }}>
+                      {getAttachmentLabelText(attachment)}
+                    </Typography>}
+                </>}
+            </Button>
+          )}
+      </GoodTooltip>
+    </Box>
+  );
 }
