@@ -4,7 +4,6 @@ import type { FileWithHandle } from 'browser-fs-access';
 import type { ComposerOutputMultiPart } from '../composer.types';
 import { attachmentCreate, attachmentDefineConverters, attachmentLoadInputAsync, attachmentPerformConversion } from './pipeline';
 
-
 // Attachment Types
 
 export type AttachmentSourceOriginDTO = 'drop' | 'paste';
@@ -32,7 +31,6 @@ export type AttachmentSource = {
   textPlain: string;
 };
 
-
 export type AttachmentInput = {
   mimeType: string; // Original MIME type of the file
   data: string | ArrayBuffer; // The original data of the attachment
@@ -41,7 +39,6 @@ export type AttachmentInput = {
   altData?: string; // Alternative data for the input
   // preview?: AttachmentPreview; // Preview of the input
 };
-
 
 export type AttachmentConverterType =
   | 'text' | 'rich-text' | 'rich-text-table'
@@ -61,7 +58,6 @@ export type AttachmentConverter = {
   // progress: number; // Conversion progress percentage (0..1)
   // errorMessage?: string; // Error message if the conversion failed
 }
-
 
 export type AttachmentId = string;
 
@@ -90,26 +86,9 @@ export type Attachment = {
   // };
 };
 
-
-/*export type AttachmentPreview = {
-  renderer: 'noPreview',
-  title: string; // A title for the preview
-} | {
-  renderer: 'textPreview'
-  fileName: string; // The name of the file
-  snippet: string; // A text snippet for documents
-  tooltip?: string; // A tooltip for the preview
-} | {
-  renderer: 'imagePreview'
-  thumbnail: string; // A thumbnail preview for images, videos, etc.
-  tooltip?: string; // A tooltip for the preview
-};*/
-
-
-/// Store
+// Store
 
 interface AttachmentsStore {
-
   attachments: Attachment[];
 
   createAttachment: (source: AttachmentSource) => Promise<void>;
@@ -117,23 +96,28 @@ interface AttachmentsStore {
   removeAttachment: (attachmentId: AttachmentId) => void;
   moveAttachment: (attachmentId: AttachmentId, delta: 1 | -1) => void;
   setConverterIdx: (attachmentId: AttachmentId, converterIdx: number | null) => Promise<void>;
+  batch: (fn: (set: (partial: Partial<AttachmentsStore>) => void) => void) => void;
+  selectAttachment: (attachmentId: AttachmentId) => Attachment | undefined;
+  getAttachmentById: (attachmentId: AttachmentId) => Attachment | undefined;
+  getAttachmentIndexById: (attachmentId: AttachmentId) => number;
+  getConverterById: (converterId: AttachmentConverterType) => AttachmentConverter | undefined;
+  getConverterIndexById: (converterId: AttachmentConverterType) => number;
+  reset: () => void;
 
   _editAttachment: (attachmentId: AttachmentId, update: Partial<Attachment> | ((attachment: Attachment) => Partial<Attachment>)) => void;
   _getAttachment: (attachmentId: AttachmentId) => Attachment | undefined;
-
 }
 
 export const useAttachmentsStore = create<AttachmentsStore>()(
-  (_set, _get) => ({
-
+  (set, get) => ({
     attachments: [],
 
     createAttachment: async (source: AttachmentSource) => {
-      const { attachments, _getAttachment, _editAttachment, setConverterIdx } = _get();
+      const { attachments, _getAttachment, _editAttachment, setConverterIdx } = get();
 
       const attachment = attachmentCreate(source, attachments.map(a => a.id));
 
-      _set({
+      set({
         attachments: [...attachments, attachment],
       });
 
@@ -156,17 +140,15 @@ export const useAttachmentsStore = create<AttachmentsStore>()(
       await setConverterIdx(attachment.id, firstEnabledIndex > -1 ? firstEnabledIndex : 0);
     },
 
-    clearAttachments: () => _set({
-      attachments: [],
-    }),
+    clearAttachments: () => set({ attachments: [] }),
 
     removeAttachment: (attachmentId: AttachmentId) =>
-      _set(state => ({
+      set(state => ({
         attachments: state.attachments.filter(attachment => attachment.id !== attachmentId),
       })),
 
     moveAttachment: (attachmentId: AttachmentId, delta: 1 | -1) =>
-      _set(state => {
+      set(state => {
         const attachments = [...state.attachments];
         const currentIdx = attachments.findIndex(a => a.id === attachmentId);
 
@@ -182,7 +164,7 @@ export const useAttachmentsStore = create<AttachmentsStore>()(
       }),
 
     setConverterIdx: async (attachmentId: AttachmentId, converterIdx: number | null) => {
-      const { _getAttachment, _editAttachment } = _get();
+      const { _getAttachment, _editAttachment } = get();
       const attachment = _getAttachment(attachmentId);
       if (!attachment || attachment.converterIdx === converterIdx)
         return;
@@ -192,8 +174,24 @@ export const useAttachmentsStore = create<AttachmentsStore>()(
       await attachmentPerformConversion(attachment, converterIdx, editFn);
     },
 
+    batch: (fn: (set: (partial: Partial<AttachmentsStore>) => void) => void) => {
+      fn(set);
+    },
+
+    selectAttachment: (attachmentId: AttachmentId) => get().attachments.find(a => a.id === attachmentId),
+
+    getAttachmentById: (attachmentId: AttachmentId) => get().attachments.find(a => a.id === attachmentId),
+
+    getAttachmentIndexById: (attachmentId: AttachmentId) => get().attachments.findIndex(a => a.id === attachmentId),
+
+    getConverterById: (converterId: AttachmentConverterType) => get().attachments.flatMap(a => a.converters).find(c => c.id === converterId),
+
+    getConverterIndexById: (converterId: AttachmentConverterType) => get().attachments.flatMap(a => a.converters).findIndex(c => c.id === converterId),
+
+    reset: () => set({ attachments: [] }),
+
     _editAttachment: (attachmentId: AttachmentId, update: Partial<Attachment> | ((attachment: Attachment) => Partial<Attachment>)) =>
-      _set(state => ({
+      set(state => ({
         attachments: state.attachments.map((attachment: Attachment): Attachment =>
           attachment.id === attachmentId
             ? { ...attachment, ...(typeof update === 'function' ? update(attachment) : update) }
@@ -202,7 +200,7 @@ export const useAttachmentsStore = create<AttachmentsStore>()(
       })),
 
     _getAttachment: (attachmentId: AttachmentId) =>
-      _get().attachments.find(a => a.id === attachmentId),
+      get().attachments.find(a => a.id === attachmentId),
 
   }),
 );
